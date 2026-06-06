@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14110d">
+<title>AI Personal University</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- 디스플레이=Fraunces(세리프), 본문=Hanken Grotesk, 한글=IBM Plex Sans KR -->
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================
+ * 디자인 시스템 — "현대적 아카데미 / 조용한 럭셔리"
+ * 포레스트 그린 + 브라스 골드, 따뜻한 잉크/파치먼트. 라이트/다크 토글.
+ * ===================================================================== */
+:root{
+  --font-display:"Fraunces","Gowun Batang",serif;
+  --font-body:"Hanken Grotesk","IBM Plex Sans KR",system-ui,sans-serif;
+  --r-sm:10px; --r-md:16px; --r-lg:24px; --r-xl:32px;
+  --maxw:1120px;
+  --tap:44px;
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+/* 다크 = 한밤의 도서관 */
+[data-theme="dark"]{
+  --bg:#14110d; --bg-2:#1a160f; --surface:#221d15; --surface-2:#2a2419;
+  --ink:#efe9da; --ink-soft:#c4bca9; --ink-faint:#8a8270;
+  --line:#352d20; --line-soft:#2a2419;
+  --accent:#7fc0a3; --accent-deep:#3f6b57; --gold:#d8b072; --gold-soft:#a98a52;
+  --danger:#e08a7a; --ok:#86c08e;
+  --shadow:0 18px 50px -24px rgba(0,0,0,.8);
+  --grain:.05;
+}
+/* 라이트 = 파치먼트 */
+[data-theme="light"]{
+  --bg:#f4efe4; --bg-2:#efe8d8; --surface:#fffdf7; --surface-2:#f7f1e3;
+  --ink:#231d14; --ink-soft:#5a5142; --ink-faint:#8d836f;
+  --line:#e3d9c4; --line-soft:#ece3d1;
+  --accent:#2f6b53; --accent-deep:#234e3d; --gold:#a9803c; --gold-soft:#c3a06a;
+  --danger:#b5503c; --ok:#3f7d4a;
+  --shadow:0 18px 50px -28px rgba(60,45,20,.4);
+  --grain:.025;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--font-body); background:var(--bg); color:var(--ink);
+  font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased;
+  letter-spacing:-.01em; overflow-x:hidden;
+}
+/* 종이 질감(노이즈) 오버레이 */
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:9999;
+  opacity:var(--grain); mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+h1,h2,h3,h4{font-family:var(--font-display); font-weight:600; line-height:1.15; letter-spacing:-.02em}
+button{font-family:inherit; cursor:pointer; border:none; background:none; color:inherit}
+input,select,textarea{font-family:inherit; font-size:16px; color:inherit}
+a{color:inherit}
+::selection{background:var(--gold); color:var(--bg)}
+
+/* ---------- 레이아웃 셸 ---------- */
+.app{min-height:100dvh; display:flex; flex-direction:column}
+.topbar{
+  position:sticky; top:0; z-index:50; display:flex; align-items:center; gap:14px;
+  padding:14px clamp(16px,4vw,40px); padding-top:max(14px,env(safe-area-inset-top));
+  background:color-mix(in srgb,var(--bg) 86%,transparent); backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line-soft);
+}
+.brand{display:flex; align-items:center; gap:11px; margin-right:auto; min-width:0}
+.crest{
+  width:38px; height:38px; flex:none; border-radius:11px; display:grid; place-items:center;
+  background:radial-gradient(120% 120% at 30% 20%,var(--accent),var(--accent-deep));
+  color:var(--bg); font-family:var(--font-display); font-weight:700; font-size:20px;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--gold) 40%,transparent), var(--shadow);
+}
+.brand b{font-family:var(--font-display); font-weight:600; font-size:1.12rem; letter-spacing:-.02em; white-space:nowrap}
+.brand span{font-size:.66rem; color:var(--gold); letter-spacing:.22em; text-transform:uppercase; display:block; margin-top:-2px}
+.icon-btn{
+  width:var(--tap); height:var(--tap); border-radius:12px; display:grid; place-items:center;
+  border:1px solid var(--line); background:var(--surface); font-size:1.1rem; transition:.2s var(--ease);
+}
+.icon-btn:hover{border-color:var(--gold-soft); transform:translateY(-1px)}
+
+.shell{display:flex; flex:1; width:100%; max-width:var(--maxw); margin:0 auto}
+/* 데스크톱 사이드바 */
+.sidenav{display:none}
+.main{flex:1; min-width:0; padding:clamp(18px,3vw,34px) clamp(16px,4vw,40px) 120px}
+
+/* 모바일 하단 탭바 */
+.tabbar{
+  position:fixed; left:0; right:0; bottom:0; z-index:60;
+  display:flex; justify-content:space-around; gap:2px;
+  padding:8px 8px max(8px,env(safe-area-inset-bottom));
+  background:color-mix(in srgb,var(--bg) 92%,transparent); backdrop-filter:blur(16px);
+  border-top:1px solid var(--line);
+}
+.tabbar button{
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
+  padding:6px 2px; border-radius:12px; color:var(--ink-faint); font-size:.62rem; font-weight:600;
+  letter-spacing:.02em; transition:.18s var(--ease); min-height:var(--tap);
+}
+.tabbar button .ti{font-size:1.18rem; line-height:1}
+.tabbar button.active{color:var(--accent)}
+.tabbar button.active .ti{transform:translateY(-1px)}
+
+/* ---------- 공통 컴포넌트 ---------- */
+.card{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--r-lg);
+  padding:22px; box-shadow:var(--shadow);
+}
+.section-title{display:flex; align-items:baseline; gap:10px; margin:30px 0 14px}
+.section-title h2{font-size:1.5rem}
+.section-title .rule{flex:1; height:1px; background:linear-gradient(90deg,var(--line),transparent)}
+.kicker{font-size:.7rem; letter-spacing:.24em; text-transform:uppercase; color:var(--gold); font-weight:700}
+.muted{color:var(--ink-faint)}
+.pill{
+  display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:999px;
+  font-size:.74rem; font-weight:600; background:var(--surface-2); border:1px solid var(--line);
+}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:var(--tap);
+  padding:12px 22px; border-radius:14px; font-weight:600; font-size:.95rem; transition:.2s var(--ease);
+  background:var(--accent); color:var(--bg); border:1px solid transparent;
+}
+.btn:hover{filter:brightness(1.06); transform:translateY(-1px)}
+.btn.ghost{background:transparent; color:var(--ink); border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--gold-soft)}
+.btn.gold{background:var(--gold); color:#1a1206}
+.btn.block{width:100%}
+.btn:disabled{opacity:.45; cursor:not-allowed; transform:none; filter:none}
+
+.grid{display:grid; gap:16px}
+@media(min-width:560px){ .grid.cols-2{grid-template-columns:1fr 1fr} }
+@media(min-width:760px){ .grid.cols-3{grid-template-columns:repeat(3,1fr)} }
+
+/* 진도 막대 */
+.bar{height:9px; border-radius:999px; background:var(--surface-2); overflow:hidden; border:1px solid var(--line-soft)}
+.bar>i{display:block; height:100%; border-radius:999px; background:linear-gradient(90deg,var(--accent-deep),var(--accent)); transition:width .6s var(--ease)}
+
+/* 통계 숫자 */
+.stat{display:flex; flex-direction:column; gap:2px}
+.stat .n{font-family:var(--font-display); font-size:2rem; font-weight:600; line-height:1; letter-spacing:-.02em}
+.stat .n small{font-size:.9rem; color:var(--ink-faint); font-family:var(--font-body)}
+.stat .l{font-size:.78rem; color:var(--ink-faint); letter-spacing:.03em}
+
+/* 입력 */
+.field{display:flex; flex-direction:column; gap:7px; margin-bottom:16px}
+.field label{font-size:.82rem; font-weight:600; color:var(--ink-soft)}
+.input,select.input,textarea.input{
+  width:100%; padding:13px 15px; border-radius:13px; background:var(--bg-2);
+  border:1px solid var(--line); transition:.2s var(--ease);
+}
+.input:focus,select.input:focus,textarea.input:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+textarea.input{resize:vertical; min-height:120px; line-height:1.65}
+
+/* 선택 칩(분야/난이도) */
+.chips{display:flex; flex-wrap:wrap; gap:9px}
+.chip{
+  padding:9px 15px; border-radius:13px; border:1px solid var(--line); background:var(--surface);
+  font-size:.86rem; font-weight:500; transition:.16s var(--ease); display:inline-flex; align-items:center; gap:7px;
+}
+.chip:hover{border-color:var(--gold-soft)}
+.chip.on{background:var(--accent); color:var(--bg); border-color:transparent; font-weight:600}
+.chip .x{opacity:.6; font-weight:700}
+
+/* 토스트 */
+.toast{
+  position:fixed; left:50%; bottom:90px; transform:translateX(-50%) translateY(20px);
+  background:var(--ink); color:var(--bg); padding:12px 20px; border-radius:14px; font-size:.88rem; font-weight:600;
+  box-shadow:var(--shadow); opacity:0; pointer-events:none; transition:.3s var(--ease); z-index:200; max-width:90vw;
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+
+/* 모달 */
+.modal-bg{
+  position:fixed; inset:0; z-index:150; background:rgba(0,0,0,.55); backdrop-filter:blur(4px);
+  display:none; align-items:flex-end; justify-content:center; padding:0;
+}
+.modal-bg.show{display:flex}
+@media(min-width:680px){ .modal-bg{align-items:center; padding:24px} }
+.modal{
+  width:100%; max-width:560px; max-height:88dvh; overflow:auto; background:var(--surface);
+  border:1px solid var(--line); border-radius:24px 24px 0 0; padding:24px;
+  animation:slideup .35s var(--ease);
+}
+@media(min-width:680px){ .modal{border-radius:24px} }
+@keyframes slideup{from{transform:translateY(40px); opacity:.4} to{transform:translateY(0); opacity:1}}
+
+/* 페이지 진입 애니메이션(스태거) */
+.view>*{animation:rise .5s var(--ease) backwards}
+.view>*:nth-child(1){animation-delay:.02s}
+.view>*:nth-child(2){animation-delay:.08s}
+.view>*:nth-child(3){animation-delay:.14s}
+.view>*:nth-child(4){animation-delay:.20s}
+.view>*:nth-child(5){animation-delay:.26s}
+@keyframes rise{from{opacity:0; transform:translateY(14px)} to{opacity:1; transform:translateY(0)}}
+
+/* 학습 카드 내부 섹션 */
+.lesson-sec{border-top:1px dashed var(--line); padding-top:16px; margin-top:16px}
+.lesson-sec:first-child{border-top:none; padding-top:0; margin-top:0}
+.lesson-sec h4{font-size:1.02rem; margin-bottom:8px; display:flex; align-items:center; gap:8px}
+.lesson-sec h4 .dot{width:7px; height:7px; border-radius:50%; background:var(--gold)}
+.lesson-sec pre,.lesson-sec p{white-space:pre-wrap; word-break:break-word; color:var(--ink-soft); font-size:.95rem; line-height:1.7}
+.lesson-sec pre{font-family:"Hanken Grotesk",monospace; background:var(--bg-2); padding:13px 15px; border-radius:12px; border:1px solid var(--line-soft); overflow-x:auto}
+.kid{background:linear-gradient(180deg,color-mix(in srgb,var(--gold) 12%,transparent),transparent); border-radius:14px; padding:14px 16px; border:1px solid color-mix(in srgb,var(--gold) 30%,transparent)}
+
+/* 퀴즈 보기 */
+.quiz-opt{
+  display:flex; gap:11px; align-items:flex-start; width:100%; text-align:left;
+  padding:14px 16px; border-radius:14px; border:1px solid var(--line); background:var(--bg-2);
+  margin-bottom:9px; transition:.16s var(--ease); font-size:.92rem;
+}
+.quiz-opt:hover{border-color:var(--gold-soft)}
+.quiz-opt .lab{flex:none; width:26px; height:26px; border-radius:8px; display:grid; place-items:center; font-weight:700; font-size:.8rem; background:var(--surface-2); border:1px solid var(--line)}
+.quiz-opt.correct{border-color:var(--ok); background:color-mix(in srgb,var(--ok) 14%,transparent)}
+.quiz-opt.correct .lab{background:var(--ok); color:var(--bg)}
+.quiz-opt.wrong{border-color:var(--danger); background:color-mix(in srgb,var(--danger) 14%,transparent)}
+.quiz-opt.wrong .lab{background:var(--danger); color:var(--bg)}
+
+/* 리스트 아이템 */
+.row{display:flex; align-items:center; gap:13px; padding:14px 0; border-bottom:1px solid var(--line-soft)}
+.row:last-child{border-bottom:none}
+.row .lead{width:42px; height:42px; flex:none; border-radius:12px; display:grid; place-items:center; background:var(--surface-2); border:1px solid var(--line); font-size:1.1rem}
+.row .body{flex:1; min-width:0}
+.row .body b{display:block; font-weight:600; font-size:.94rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.row .body small{color:var(--ink-faint); font-size:.78rem}
+
+.empty{text-align:center; padding:50px 20px; color:var(--ink-faint)}
+.empty .big{font-size:2.6rem; margin-bottom:10px; opacity:.5}
+
+/* 온보딩 */
+.onboard{max-width:620px; margin:0 auto}
+.steps{display:flex; gap:6px; margin-bottom:26px}
+.steps i{flex:1; height:4px; border-radius:2px; background:var(--line)}
+.steps i.on{background:var(--accent)}
+.hero-title{font-size:clamp(2rem,7vw,3.1rem); font-weight:600; line-height:1.05; margin-bottom:14px}
+.hero-title em{font-style:italic; color:var(--gold)}
+
+/* 데스크톱 사이드바 표시 */
+@media(min-width:900px){
+  .tabbar{display:none}
+  .main{padding-bottom:40px}
+  .sidenav{
+    display:flex; flex-direction:column; gap:4px; width:210px; flex:none;
+    padding:24px 14px; position:sticky; top:67px; height:calc(100dvh - 67px);
+    border-right:1px solid var(--line-soft);
+  }
+  .sidenav button{
+    display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:13px;
+    color:var(--ink-faint); font-weight:600; font-size:.92rem; transition:.16s var(--ease); text-align:left;
+  }
+  .sidenav button .ti{font-size:1.15rem; width:22px; text-align:center}
+  .sidenav button:hover{background:var(--surface); color:var(--ink)}
+  .sidenav button.active{background:var(--surface); color:var(--accent); box-shadow:inset 3px 0 0 var(--accent)}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="crest">U</div>
+      <div>
+        <b>AI Personal University</b>
+        <span>나만의 평생 대학</span>
+      </div>
+    </div>
+    <button class="icon-btn" id="themeBtn" title="테마 전환">◐</button>
+    <button class="icon-btn" id="settingsBtn" title="설정">⚙</button>
+  </header>
+
+  <div class="shell">
+    <!-- 데스크톱 사이드바 -->
+    <nav class="sidenav" id="sidenav"></nav>
+    <!-- 메인 뷰 -->
+    <main class="main"><div class="view" id="view"></div></main>
+  </div>
+
+  <!-- 모바일 하단 탭 -->
+  <nav class="tabbar" id="tabbar"></nav>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="modal-bg" id="modalBg"><div class="modal" id="modal"></div></div>
+
+<script>
+/* =====================================================================
+ *  여기서부터 core.js 내용을 그대로 포함합니다 (저장소·커리큘럼·콘텐츠
+ *  엔진·SRS·스케줄러·일일생성기·통계). UI 계층과 분리된 '두뇌'입니다.
+ * ===================================================================== */
+'use strict';
+
+/* =====================================================================
+ *  ★ 클라우드 동기화 설정 (폰·PC 같은 데이터로 쓰기)
+ * ---------------------------------------------------------------------
+ *  아래 두 칸을 채우면 자동으로 "클라우드 모드"가 됩니다.
+ *  - 비워두면: 지금처럼 이 기기에만 저장되는 오프라인 모드
+ *  - 채우면 : 이메일 로그인 후, 폰·PC가 같은 학습 데이터를 공유
+ *
+ *  값 얻는 곳: supabase.com → 프로젝트 → Settings → API
+ *    SUPABASE_URL      = "Project URL"
+ *    SUPABASE_ANON_KEY = "anon public" 키 (공개되어도 안전한 키)
+ *  (자세한 설정 순서는 함께 드린 안내서를 참고하세요.)
+ * ===================================================================== */
+const CONFIG = {
+  SUPABASE_URL: 'https://iubxgglykomvrzqvwgbs.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_5FgFcFvUYlJgMyWS4bXl7g_04vmyHpM',
+};
+let SB = null;             // Supabase 클라이언트 (클라우드 모드에서 채워짐)
+let cloudMode = false;     // 클라우드 동기화 사용 여부
+
+/* ---- 0. 유틸 ---- */
+const Util = {
+  today(){ return this.dateKey(new Date()); },
+  dateKey(d){ const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; },
+  parseDate(k){ const [y,m,d]=k.split('-').map(Number); return new Date(y,m-1,d); },
+  addDays(k,n){ const d=this.parseDate(k); d.setDate(d.getDate()+n); return this.dateKey(d); },
+  daysBetween(a,b){ return Math.round((this.parseDate(b)-this.parseDate(a))/86400000); },
+  uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); },
+  seeded(seed){ let h=2166136261; for(let i=0;i<seed.length;i++){h^=seed.charCodeAt(i);h=Math.imul(h,16777619);} return ()=>{h+=0x6D2B79F5;let t=h;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;}; },
+  pick(a,r){ return a[Math.floor(r()*a.length)]; },
+  clamp(n,lo,hi){ return Math.max(lo,Math.min(hi,n)); },
+  esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); },
+};
+
+/* ---- 1. 저장소 추상화 (LocalStorage ↔ 향후 Supabase) ---- */
+class StorageAdapter{ async get(){} async set(){} async remove(){} async keys(){} }
+class LocalStorageAdapter extends StorageAdapter{
+  constructor(ns='apu:'){ super(); this.ns=ns; }
+  async get(k){ const r=localStorage.getItem(this.ns+k); return r==null?null:JSON.parse(r); }
+  async set(k,v){ localStorage.setItem(this.ns+k,JSON.stringify(v)); }
+  async remove(k){ localStorage.removeItem(this.ns+k); }
+  async keys(){ const o=[]; for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i); if(k&&k.startsWith(this.ns))o.push(k.slice(this.ns.length));} return o; }
+}
+/* [확장] 클라우드 동기화용 어댑터 — 단일 'state' JSON 블롭을 user_state 테이블에 저장.
+   UI 코드는 그대로 두고 이 어댑터로 DB만 갈아끼우면 폰·PC가 같은 데이터를 씁니다. */
+class SupabaseStorageAdapter extends StorageAdapter{
+  constructor(client, userId){ super(); this.c=client; this.uid=userId; }
+  async get(k){
+    if(k!=='state') return null;
+    const { data, error } = await this.c.from('user_state').select('state').eq('user_id',this.uid).maybeSingle();
+    if(error){ console.warn('cloud get:', error.message); return null; }
+    return data ? data.state : null;
+  }
+  async set(k,v){
+    if(k!=='state') return;
+    const { error } = await this.c.from('user_state').upsert({ user_id:this.uid, state:v, updated_at:new Date().toISOString() });
+    if(error) console.warn('cloud set:', error.message);
+  }
+  async remove(k){ if(k==='state') await this.c.from('user_state').delete().eq('user_id',this.uid); }
+  async keys(){ return ['state']; }
+}
+/* 기본은 오프라인(LocalStorage). 클라우드 설정이 있으면 boot()에서 교체. */
+let DB = new LocalStorageAdapter('apu:');
+
+/* ---- 2. 커리큘럼 ---- */
+const DEFAULT_CURRICULUM = [
+  { id:'english', name:'영어', mode:'english', icon:'✦', subjects:[
+    { id:'toefl', name:'TOEFL', units:['Reading','Listening','Speaking','Writing'] },
+    { id:'gre', name:'GRE', mode:'gre', units:['Reading','Text Completion','Quantitative','Analytical Writing'] },
+    { id:'lsat', name:'LSAT', mode:'lsat', units:['Logical Reasoning','Reading Comprehension','Analytical Reasoning'] },
+    { id:'gmat', name:'GMAT', units:['Verbal','Quantitative','Integrated Reasoning','Data Insights'] },
+  ]},
+  { id:'cs', name:'컴퓨터공학', mode:'coding', icon:'◈', subjects:[
+    { id:'scratch', name:'Scratch', units:['블록 기초','이벤트','반복과 조건','나만의 게임'] },
+    { id:'c', name:'C', units:['변수와 타입','포인터','메모리','함수'] },
+    { id:'python', name:'Python', units:['기초 문법','자료형','함수','객체지향','라이브러리'] },
+    { id:'ds', name:'자료구조', units:['배열','연결리스트','스택/큐','트리','그래프','해시'] },
+    { id:'algo', name:'알고리즘', units:['정렬','탐색','재귀','동적계획법','그리디','그래프 알고리즘'] },
+    { id:'os', name:'운영체제', units:['프로세스','스레드','스케줄링','메모리관리','파일시스템'] },
+    { id:'network', name:'네트워크', units:['OSI 7계층','TCP/IP','HTTP','DNS','보안'] },
+    { id:'db', name:'데이터베이스', units:['관계형 모델','SQL','정규화','인덱스','트랜잭션'] },
+    { id:'cs-ai', name:'AI', units:['머신러닝 기초','신경망','딥러닝','자연어처리','강화학습'] },
+  ]},
+  { id:'math', name:'수학', mode:'math', icon:'∑', subjects:[
+    { id:'basic', name:'기초수학', units:['수와 연산','비와 비례','방정식','함수 기초'] },
+    { id:'algebra', name:'대수', units:['다항식','인수분해','이차방정식','수열'] },
+    { id:'linalg', name:'선형대수', units:['벡터','행렬','행렬식','고유값','선형변환'] },
+    { id:'calc', name:'미적분', units:['극한','미분','적분','다변수'] },
+    { id:'prob', name:'확률', units:['경우의 수','조건부확률','확률분포','기댓값'] },
+    { id:'stat', name:'통계', units:['기술통계','추정','가설검정','회귀분석'] },
+    { id:'opt', name:'최적화', units:['선형계획','경사하강','제약 최적화','볼록최적화'] },
+  ]},
+  { id:'design', name:'디자인', mode:'design', icon:'◐', subjects:[
+    { id:'color', name:'색채', units:['색의 기본','색상환','배색','감정과 색'] },
+    { id:'typo', name:'타이포그래피', units:['글꼴 분류','커닝/자간','위계','가독성'] },
+    { id:'layout', name:'레이아웃', units:['그리드','정렬','여백','시선 흐름'] },
+    { id:'uiux', name:'UI/UX', units:['사용자 흐름','컴포넌트','접근성','프로토타이핑'] },
+    { id:'brand', name:'브랜딩', units:['브랜드 정체성','로고','톤앤매너','가이드라인'] },
+    { id:'ad', name:'광고', units:['카피','비주얼','캠페인','매체 전략'] },
+  ]},
+  { id:'future', name:'AI & 미래산업', mode:'concept', icon:'✺', subjects:[
+    { id:'f-ai', name:'AI', units:['AI의 정의','학습 방식','활용 사례','윤리'] },
+    { id:'semi', name:'반도체', units:['트랜지스터','공정','메모리 vs 로직','산업 구조'] },
+    { id:'robot', name:'로봇', units:['센서','액추에이터','제어','휴머노이드'] },
+    { id:'auto', name:'자동화', units:['공정 자동화','RPA','스마트팩토리','AI 자동화'] },
+    { id:'energy', name:'에너지', units:['태양광','배터리','수소','전력망'] },
+    { id:'bio', name:'바이오', units:['유전자','신약','바이오 공정','디지털 헬스'] },
+    { id:'space', name:'우주산업', units:['발사체','위성','우주 자원','우주 경제'] },
+  ]},
+  { id:'biz', name:'비즈니스', mode:'concept', icon:'◆', subjects:[
+    { id:'mkt', name:'마케팅', units:['고객 이해','4P','디지털 마케팅','퍼널'] },
+    { id:'b-brand', name:'브랜딩', units:['포지셔닝','스토리텔링','충성도','확장'] },
+    { id:'data', name:'데이터분석', units:['지표 설계','시각화','A/B 테스트','인사이트'] },
+    { id:'strat', name:'전략', units:['SWOT','경쟁우위','비즈니스 모델','성장'] },
+    { id:'decide', name:'의사결정', units:['프레임워크','리스크','편향','실행'] },
+  ]},
+];
+const LEVELS = [{id:'beginner',name:'초급'},{id:'intermediate',name:'중급'},{id:'advanced',name:'고급'},{id:'expert',name:'전문가'}];
+
+/* ---- 3. AI 콘텐츠 엔진 (★ 쉬운 설명이 기본 원칙) ---- */
+const MODE_METHODS = {
+  english:[
+    {title:'독해 패턴', body:t=>`이 주제의 문장은 보통 "주어 → 핵심 동사 → 이유" 순서로 흘러요. 핵심 동사에 표시하며 읽기.`},
+    {title:'문장 구조', body:t=>`긴 문장은 콤마(,)와 접속사 기준으로 토막 내면 짧은 문장 여러 개가 됩니다.`},
+    {title:'영작', body:t=>`오늘 배운 단어로 짧은 영어 문장 1개를 직접 만들어 보세요. (예: I practice ${t} every day.)`},
+    {title:'딕테이션', body:t=>`들리는 대로 받아쓰기 → 안 들린 부분이 곧 약점. 그 부분만 다시 듣기.`},
+    {title:'쉐도잉', body:t=>`원어민을 0.5초 늦게 따라 말하기. 뜻보다 '리듬'을 먼저 흉내 내세요.`},
+  ],
+  gre:[
+    {title:'문제 풀이', body:t=>`보기를 먼저 읽지 말고, 지문에서 답의 '근거 문장'을 찾는 습관을 들여요.`},
+    {title:'오답 분석', body:t=>`틀린 보기마다 "왜 매력적이었나 / 왜 틀렸나"를 한 줄로 적기.`},
+  ],
+  lsat:[
+    {title:'전제', body:t=>`글쓴이가 '사실'이라고 깔아둔 문장(근거)을 찾기.`},
+    {title:'결론', body:t=>`글쓴이가 결국 '주장'하는 한 문장을 찾기.`},
+    {title:'가정', body:t=>`전제와 결론 사이의 '말하지 않은 다리'를 찾기.`},
+    {title:'반례', body:t=>`그 주장이 깨지는 예외 상황을 하나 상상해 보기.`},
+  ],
+  coding:[
+    {title:'코드 표시', body:t=>`for i in range(3):\n    print(i)   # 0, 1, 2 출력`},
+    {title:'한 줄씩 설명', body:t=>`1줄: 0,1,2를 차례로 꺼낸다 / 2줄: 꺼낸 값을 화면에 보여준다.`},
+    {title:'기호 단위 설명', body:t=>`range(3)의 괄호()="여기 재료를 넣어줘", 콜론(:)="여기부터 묶음 시작".`},
+    {title:'실습 문제', body:t=>`1부터 5까지 더한 값을 출력하는 코드를 직접 써보세요. (정답 합: 15)`},
+  ],
+  math:[
+    {title:'그림으로', body:t=>`식을 보기 전에 상황을 그림으로 먼저 그려요. 그림 = 가장 쉬운 통역.`},
+    {title:'식으로', body:t=>`그림을 짧은 식으로 바꿔요. 식은 '상황을 줄인 메모'일 뿐.`},
+    {title:'검산', body:t=>`작은 숫자(예: 1, 2)를 넣어 답이 말이 되는지 확인.`},
+  ],
+  design:[
+    {title:'사례 표시', body:t=>`잘 만든 디자인 1개를 떠올려요(좋아하는 앱/포스터 아무거나).`},
+    {title:'구도 분석', body:t=>`요소들이 어디에 모여 있고, 시선이 어디서 시작되는지 화살표로 그려보기.`},
+    {title:'색상 분석', body:t=>`색은 몇 개나 썼나요? 보통 좋은 디자인은 색 2~3개로 절제해요.`},
+    {title:'타이포 분석', body:t=>`글자 크기 단계가 몇 개인지 세어보기(제목/소제목/본문).`},
+    {title:'왜 좋은가', body:t=>`"${t}" 관점에서 이 디자인이 좋은 이유를 한 문장으로 적어보기.`},
+  ],
+  concept:[
+    {title:'핵심 한 줄', body:t=>`"${t}"를 한 문장으로 요약해 보기.`},
+    {title:'실제 사례', body:t=>`최근 뉴스/주변에서 "${t}" 사례 1개 찾기.`},
+    {title:'내 생각', body:t=>`나라면 어떻게 적용할지 한 줄로 적기.`},
+  ],
+};
+
+const ContentEngine = {
+  SYSTEM_RULE:[
+    '너는 AI 개인 대학의 교수다. 모든 설명은 초등학생도 이해할 수 있을 만큼 쉽게 한다.',
+    '규칙:(1) 어려운 용어는 반드시 괄호로 쉬운 말을 붙인다. (2) 문장은 짧게.',
+    '(3) 먼저 일상 비유로 감을 잡게 한 뒤, 정확한 정의를 말한다. (4) 친근하게.',
+  ].join(' '),
+  buildPrompt(ctx){ return `${this.SYSTEM_RULE}\n분야:${ctx.field}/과목:${ctx.subject}/단원:${ctx.unit}/난이도:${ctx.levelName}/레슨:${ctx.lessonNo}\n학습카드 JSON 생성.`; },
+
+  /* [확장 지점] 실제 LLM 사용 시 이 함수를 async 로 바꿔 API 호출 후 동일 JSON 반환.
+     지금은 오프라인에서도 매일 동작하도록 템플릿 기반으로 생성. */
+  generateCard(ctx){
+    const rnd = Util.seeded(`${ctx.subtopicId}#${ctx.lessonNo}#${ctx.level}`);
+    const t = ctx.unit, L = ctx.levelName;
+    const depth = {beginner:'아주 기초부터',intermediate:'핵심 위주로',advanced:'깊이 있게',expert:'실전·심화로'}[ctx.level]||'';
+    const concept = `[${t}] — ${depth} 알아봅시다. (난이도: ${L})\n\n한마디로 "${t}"은(는) ${this._analogy(rnd)} 같은 거예요. 즉, 어떤 일을 더 잘 해내기 위한 ${this._role(ctx.mode,rnd)}입니다. 처음엔 낯설어 보여도, 작은 규칙 몇 개만 익히면 누구나 쓸 수 있어요. 이 레슨에서는 "${t}"의 가장 중요한 한 조각을 배웁니다.`;
+    const kidExplain = `🧒 더 쉽게! "${t}"을(를) 친구한테 설명한다면?\n${this._kidStory(t,rnd)} 이렇게 생각하면 어렵지 않죠?`;
+    const example = this._example(t,ctx.mode);
+    const quiz = this._quiz(t,rnd,L);
+    const methodSections = (MODE_METHODS[ctx.mode]||MODE_METHODS.concept).map((m,i)=>({title:`${i+1}. ${m.title}`, body:m.body(t,rnd)}));
+    return { id:`${ctx.subtopicId}#${ctx.lessonNo}`, title:`${t} · Lesson ${ctx.lessonNo}`, ctx,
+      concept, kidExplain, example, quiz:quiz.q, options:quiz.options, answerIndex:quiz.answerIndex, answer:quiz.answer, wrongExplain:quiz.wrongExplain,
+      methodSections, generatedAt:new Date().toISOString() };
+  },
+  _analogy(r){ return Util.pick(['레고 블록을 차곡차곡 쌓는 것','요리 레시피를 한 단계씩 따라 하는 것','지도를 보고 길을 찾아가는 것','퍼즐 조각을 맞추는 것','운동을 매일 조금씩 연습하는 것'],r); },
+  _role(mode,r){ const m={english:['읽기·말하기 기술','연습 방법'],coding:['생각을 컴퓨터에 시키는 방법','문제 푸는 도구'],math:['세상을 숫자로 표현하는 약속','문제 푸는 도구'],design:['보기 좋고 쓰기 편하게 만드는 규칙','눈을 즐겁게 하는 기술'],concept:['세상을 이해하는 틀','더 똑똑하게 결정하는 방법']}; return Util.pick(m[mode]||m.concept,r); },
+  _kidStory(t,r){ return Util.pick([`놀이터에서 미끄럼틀을 타려면 계단부터 올라가야 하죠? "${t}"도 순서가 있어요. 순서대로만 하면 무조건 됩니다.`,`블록 장난감을 만들 때 큰 그림을 먼저 떠올리고 작은 블록을 끼우잖아요. "${t}"도 큰 그림 → 작은 조각 순서예요.`,`자전거를 처음 탈 때 넘어져도 계속 타면 어느 순간 쌩 달리죠. "${t}"도 반복하면 갑자기 쉬워지는 순간이 와요.`],r); },
+  _example(t,mode){ const m={
+    english:`영어 지문에서 "${t}"이(가) 쓰인 문장을 만나면, 먼저 핵심 단어 하나에 동그라미를 쳐 보세요. 그 단어가 문장의 '주인공'이에요. 주인공만 잡으면 나머지는 따라옵니다.`,
+    coding:`코드로 보면:\n  result = 0\n  for x in data:\n      result = result + x   # 하나씩 더해서 모으기\n한 줄씩 보면 "상자(result)를 0으로 두고 → 데이터를 하나씩 꺼내 더한다"입니다.`,
+    math:`사과 3개에 2개를 더 받으면 5개죠. "${t}"도 이렇게 '눈에 보이는 상황'을 식으로 바꾸는 연습이에요. 식 = 상황을 짧게 쓴 메모.`,
+    design:`좋은 포스터는 글자 크기가 제목 > 소제목 > 본문 순서로 딱 정해져 있어요. 이게 "${t}"의 결과예요. 눈이 자연스럽게 큰 것부터 작은 것으로 흐르죠.`,
+    concept:`뉴스에서 "${t}" 사례를 찾아 회사가 왜 그런 결정을 했는지 한 줄로 요약해 보면, 어려운 개념이 '실제 이야기'로 바뀌어 쉽게 기억돼요.`,
+  }; return m[mode]||m.concept; },
+  _quiz(t,r,L){
+    const correct = `"${t}"의 핵심은 작은 규칙을 순서대로 익혀 반복하는 것이다.`;
+    const opts=[correct,`"${t}"은(는) 한 번에 외우면 끝이라 반복이 필요 없다.`,`"${t}"은(는) 어려운 사람만 쓰는 것이라 초보는 몰라도 된다.`,`"${t}"은(는) 순서와 상관없이 아무렇게나 해도 결과가 같다.`];
+    for(let i=opts.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[opts[i],opts[j]]=[opts[j],opts[i]];}
+    const ai=opts.indexOf(correct);
+    return { q:`[${L} 퀴즈] 다음 중 "${t}"에 대한 설명으로 가장 알맞은 것은?`, options:opts, answerIndex:ai,
+      answer:`정답: ${String.fromCharCode(65+ai)}번 — ${correct}`,
+      wrongExplain:`❌ 오답 설명\n· "한 번에 외우면 끝" → 배움은 근육과 같아 반복해야 오래 남아요.\n· "초보는 몰라도 된다" → 모든 전문가도 처음엔 초보였어요.\n· "순서 상관없다" → 계단을 건너뛰면 넘어지듯, 순서가 이해를 만듭니다.` };
+  },
+};
+
+/* ---- 4. 간격 반복(SRS): 1·3·7·30일 ---- */
+const SRS = {
+  INTERVALS:[1,3,7,30],
+  schedule(cardId,from,label){ return {cardId,label,stage:0,due:Util.addDays(from,this.INTERVALS[0]),history:[],createdAt:from,done:false}; },
+  review(it,pass,today){ it.history.push({date:today,pass}); if(pass)it.stage=Math.min(it.stage+1,this.INTERVALS.length-1); else it.stage=Math.max(it.stage-1,0); it.due=Util.addDays(today,this.INTERVALS[it.stage]); it.done=pass&&it.stage===this.INTERVALS.length-1; return it; },
+  due(items,today){ return items.filter(it=>!it.done&&Util.daysBetween(it.due,today)>=0); },
+};
+
+/* ---- 5. 스케줄러 ---- */
+const Scheduler = {
+  WEEK:['일','월','화','수','목','금','토'],
+  rangeToMinutes(range){ if(!range||!range.includes('~'))return 0; const [a,b]=range.split('~').map(s=>s.trim()); const toMin=t=>{const[h,m]=t.split(':').map(Number);return h*60+(m||0);}; return Math.max(0,toMin(b)-toMin(a)); },
+  weeklyPlan(subjects,schedule){ const days=[]; for(let i=0;i<7;i++){ const we=(i===0||i===6); const min=this.rangeToMinutes(we?schedule.weekend:schedule.weekday); days.push({day:this.WEEK[i],minutes:min,slots:this._allocate(subjects,min)}); } return days; },
+  _allocate(subjects,minutes){ if(!subjects.length||minutes<=0)return[]; const w=subjects.map(s=>1+(s.weakness||0)*1.5); const tot=w.reduce((a,b)=>a+b,0); return subjects.map((s,i)=>({label:`${s.fieldName} · ${s.subjectName}`,minutes:Math.round(minutes*(w[i]/tot))})).filter(x=>x.minutes>=5); },
+  monthlyPlan(subjects,schedule){ const wk=this.weeklyPlan(subjects,schedule); const wm=wk.reduce((a,d)=>a+d.minutes,0); const focus=[...subjects].sort((a,b)=>(b.weakness||0)-(a.weakness||0)); return Array.from({length:4},(_,w)=>({week:w+1,totalMinutes:wm,focus:focus[w%Math.max(1,focus.length)]})); },
+};
+
+/* ---- 6. 일일 자동 생성 + 빠진 날 따라잡기 ---- */
+const DailyGenerator = {
+  run(state,today){
+    const enrolled=state.enrolled||[]; if(!enrolled.length)return {};
+    let cursor=state.lastGenerated?Util.addDays(state.lastGenerated,1):today;
+    if(Util.daysBetween(cursor,today)>14)cursor=Util.addDays(today,-14);
+    const created={};
+    while(Util.daysBetween(cursor,today)>=0){ created[cursor]=this._forDay(state,cursor); cursor=Util.addDays(cursor,1); }
+    state.lastGenerated=today;
+    return created;
+  },
+  _forDay(state,dateKey){
+    const ids=[];
+    for(const e of state.enrolled){
+      const prog=state.progress[e.key]||{lesson:1};
+      const card=ContentEngine.generateCard({field:e.fieldName,subject:e.subjectName,unit:e.unitName,subtopicId:e.key,lessonNo:prog.lesson||1,mode:e.mode,level:e.level,levelName:e.levelName});
+      ids.push({key:e.key,cardId:card.id,lessonNo:prog.lesson||1,label:`${e.fieldName} · ${e.subjectName} · ${e.unitName}`});
+    }
+    return ids;
+  },
+};
+
+/* ---- 7. 통계(강점/약점) ---- */
+const Stats = {
+  strengths(records){
+    const by={};
+    for(const r of records){ if(r.type!=='quiz')continue; by[r.key]=by[r.key]||{key:r.key,label:r.label,correct:0,total:0}; by[r.key].total++; if(r.correct)by[r.key].correct++; }
+    const arr=Object.values(by).map(x=>({...x,rate:x.total?x.correct/x.total:0})).sort((a,b)=>b.rate-a.rate);
+    return { strong:arr.filter(x=>x.rate>=0.7).slice(0,3), weak:arr.filter(x=>x.rate<0.6).slice(0,3), all:arr };
+  },
+  totalMinutes(records){ return records.filter(r=>r.type==='study').reduce((a,r)=>a+(r.minutes||0),0); },
+};
+
+/* =====================================================================
+ *  UI 계층 — 상태 스토어 / 뷰 렌더링 / 라우터 / 초기화
+ * ===================================================================== */
+
+/* ---- 상태 스토어 (영속화는 DB 어댑터 경유) ---- */
+const Store = {
+  state:null,
+  DEFAULT(){ return {
+    onboarded:false,
+    theme:'dark',
+    curriculum:DEFAULT_CURRICULUM,        // 사용자가 분야/과목 추가 가능
+    enrolled:[],                          // [{key, fieldId,fieldName,mode, subjectId,subjectName, unitName, level,levelName}]
+    progress:{},                          // key -> {lesson, completedUnits:[]}
+    schedule:{weekday:'20:00~22:00', weekend:'13:00~20:00'},
+    daily:{},                             // dateKey -> [{key,cardId,lessonNo,label, done}]
+    lastGenerated:null,
+    reviews:[],                           // SRS 항목들
+    records:[],                           // {type:'study'|'quiz', date, key,label, minutes?, correct?}
+    reflections:[],                       // {date, key,label, text, aiSummary, aiFeedback}
+  }; },
+  async load(){
+    const saved = await DB.get('state');
+    this.state = saved ? Object.assign(this.DEFAULT(), saved) : this.DEFAULT();
+    return this.state;
+  },
+  async save(){
+    if(cloudMode){ // 클라우드는 잦은 쓰기를 모아서(디바운스) 저장
+      clearTimeout(this._t);
+      this._t=setTimeout(()=>DB.set('state',this.state).catch(()=>{}),600);
+    } else {
+      await DB.set('state', this.state);
+    }
+  },
+  async flush(){ clearTimeout(this._t); await DB.set('state', this.state).catch(()=>{}); },
+  async reset(){ await DB.remove('state'); this.state=this.DEFAULT(); await this.save(); },
+};
+
+/* ---- 작은 UI 헬퍼 ---- */
+const $ = sel => document.querySelector(sel);
+const view = $('#view');
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),2200); }
+function openModal(html){ $('#modal').innerHTML=html; $('#modalBg').classList.add('show'); }
+function closeModal(){ $('#modalBg').classList.remove('show'); }
+$('#modalBg').addEventListener('click', e=>{ if(e.target.id==='modalBg') closeModal(); });
+
+/* ---- 테마 토글 ---- */
+function applyTheme(t){ document.documentElement.setAttribute('data-theme',t); $('#themeBtn').textContent = t==='dark'?'☀':'☾'; }
+$('#themeBtn').addEventListener('click', async ()=>{ const t=Store.state.theme==='dark'?'light':'dark'; Store.state.theme=t; applyTheme(t); await Store.save(); });
+
+/* ---- 네비게이션 정의 ---- */
+const NAV = [
+  {id:'dashboard', icon:'◴', label:'대시보드'},
+  {id:'study',     icon:'✎', label:'학습'},
+  {id:'review',    icon:'↺', label:'복습'},
+  {id:'schedule',  icon:'◷', label:'일정'},
+  {id:'records',   icon:'❏', label:'기록'},
+];
+let currentRoute='dashboard';
+function renderNav(){
+  const tab=$('#tabbar'), side=$('#sidenav');
+  tab.innerHTML = NAV.map(n=>`<button data-route="${n.id}" class="${n.id===currentRoute?'active':''}"><span class="ti">${n.icon}</span>${n.label}</button>`).join('');
+  side.innerHTML = NAV.map(n=>`<button data-route="${n.id}" class="${n.id===currentRoute?'active':''}"><span class="ti">${n.icon}</span>${n.label}</button>`).join('')
+    + `<button data-route="settings" class="${currentRoute==='settings'?'active':''}" style="margin-top:auto"><span class="ti">⚙</span>설정</button>`;
+  document.querySelectorAll('[data-route]').forEach(b=>b.onclick=()=>navigate(b.dataset.route));
+}
+$('#settingsBtn').addEventListener('click', ()=>navigate('settings'));
+
+function navigate(route){ currentRoute=route; renderNav(); window.scrollTo(0,0); Views[route](); }
+
+/* =====================================================================
+ *  뷰(화면)들
+ * ===================================================================== */
+const Views = {};
+
+/* ----- 온보딩 ----- */
+let onboard = {step:0, fields:new Set(), subjects:new Map(), level:'beginner', schedule:{weekday:'20:00~22:00',weekend:'13:00~20:00'}};
+Views.onboard = function(){
+  $('#tabbar').style.display='none'; $('#sidenav').style.display='none';
+  const s=onboard.step;
+  let body='';
+  if(s===0){
+    body = `
+      <div class="hero">
+        <p class="kicker">AI Personal University</p>
+        <h1 class="hero-title">10년을 함께할<br><em>나만의 대학</em>을 세웁니다</h1>
+        <p class="muted" style="font-size:1.02rem; margin-bottom:26px">AI가 매일 학습 카드를 만들고, 진도와 복습을 관리하고, 일정을 추천합니다. 모든 설명은 초등학생도 이해할 만큼 쉽게 풀어드려요.</p>
+        <button class="btn block" onclick="onboardNext()">시작하기 →</button>
+      </div>`;
+  } else if(s===1){
+    body = `
+      <p class="kicker">1단계 · 분야 선택</p>
+      <h2 style="margin:6px 0 6px">무엇을 배우고 싶나요?</h2>
+      <p class="muted" style="margin-bottom:18px">관심 있는 과목을 눌러 담아보세요. 나중에 언제든 추가·변경할 수 있어요.</p>
+      ${Store.state.curriculum.map(f=>`
+        <div class="card" style="margin-bottom:14px; padding:16px 18px">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px">
+            <span style="font-size:1.3rem; color:var(--gold)">${f.icon||'◆'}</span>
+            <b style="font-family:var(--font-display); font-size:1.1rem">${f.name}</b>
+          </div>
+          <div class="chips">
+            ${f.subjects.map(sub=>{const key=f.id+'/'+sub.id; const on=onboard.subjects.has(key);
+              return `<button class="chip ${on?'on':''}" onclick="toggleSubject('${f.id}','${sub.id}')">${sub.name}</button>`;}).join('')}
+          </div>
+        </div>`).join('')}
+      <button class="btn block" ${onboard.subjects.size?'':'disabled'} onclick="onboardNext()">다음 (${onboard.subjects.size}과목 선택됨) →</button>`;
+  } else if(s===2){
+    body = `
+      <p class="kicker">2단계 · 난이도</p>
+      <h2 style="margin:6px 0 6px">어느 수준부터 시작할까요?</h2>
+      <p class="muted" style="margin-bottom:18px">AI가 이 수준에 맞춰 콘텐츠를 생성합니다. 학습 중 언제든 바꿀 수 있어요.</p>
+      <div class="chips" style="margin-bottom:26px">
+        ${LEVELS.map(l=>`<button class="chip ${onboard.level===l.id?'on':''}" onclick="setLevel('${l.id}')" style="padding:14px 22px">${l.name}</button>`).join('')}
+      </div>
+      <button class="btn block" onclick="onboardNext()">다음 →</button>`;
+  } else if(s===3){
+    body = `
+      <p class="kicker">3단계 · 학습 시간</p>
+      <h2 style="margin:6px 0 6px">언제 공부할 수 있나요?</h2>
+      <p class="muted" style="margin-bottom:18px">AI가 이 시간에 맞춰 주간·월간 계획과 과목 비중을 자동으로 짜드려요.</p>
+      <div class="field"><label>평일 (예: 20:00~22:00)</label><input class="input" id="ob-weekday" value="${onboard.schedule.weekday}"></div>
+      <div class="field"><label>주말 (예: 13:00~20:00)</label><input class="input" id="ob-weekend" value="${onboard.schedule.weekend}"></div>
+      <button class="btn block gold" onclick="finishOnboard()">나의 대학 입학하기 ✦</button>`;
+  }
+  view.innerHTML = `<div class="onboard">
+    <div class="steps">${[0,1,2,3].map(i=>`<i class="${i<=s?'on':''}"></i>`).join('')}</div>
+    ${body}
+  </div>`;
+};
+window.onboardNext=()=>{ onboard.step++; Views.onboard(); };
+window.toggleSubject=(fid,sid)=>{ const key=fid+'/'+sid; if(onboard.subjects.has(key))onboard.subjects.delete(key); else onboard.subjects.set(key,{fid,sid}); Views.onboard(); };
+window.setLevel=(l)=>{ onboard.level=l; Views.onboard(); };
+window.finishOnboard=async ()=>{
+  onboard.schedule.weekday=$('#ob-weekday').value.trim();
+  onboard.schedule.weekend=$('#ob-weekend').value.trim();
+  const levelName=LEVELS.find(l=>l.id===onboard.level).name;
+  // 선택 과목을 enrolled 로 변환 (첫 단원부터 시작)
+  Store.state.enrolled = [...onboard.subjects.values()].map(({fid,sid})=>{
+    const f=Store.state.curriculum.find(x=>x.id===fid); const sub=f.subjects.find(x=>x.id===sid);
+    const key=fid+'/'+sid;
+    Store.state.progress[key]={lesson:1, unitIndex:0, completedUnits:[]};
+    return { key, fieldId:fid, fieldName:f.name, mode:sub.mode||f.mode, subjectId:sid, subjectName:sub.name, unitName:sub.units[0], level:onboard.level, levelName };
+  });
+  Store.state.schedule=onboard.schedule;
+  Store.state.onboarded=true;
+  await ensureDailyGeneration();
+  await Store.save();
+  $('#tabbar').style.display=''; $('#sidenav').style.display='';
+  navigate('dashboard');
+  toast('입학을 축하합니다! 🎓');
+};
+
+/* ----- 매일 자동 생성 보장 (열 때마다 따라잡기) ----- */
+async function ensureDailyGeneration(){
+  const today=Util.today();
+  if(Store.state.lastGenerated===today && Store.state.daily[today]) return;
+  const created=DailyGenerator.run(Store.state, today);
+  let n=0;
+  for(const [date,cards] of Object.entries(created)){
+    if(!Store.state.daily[date]){ Store.state.daily[date]=cards.map(c=>({...c,done:false})); n++; }
+  }
+  await Store.save();
+  if(n>1) toast(`PC가 꺼져 있던 ${n}일치 학습을 따라잡아 생성했어요`);
+}
+
+/* ----- 대시보드 ----- */
+Views.dashboard = function(){
+  const st=Store.state, today=Util.today();
+  const todayCards=st.daily[today]||[];
+  const doneToday=todayCards.filter(c=>c.done).length;
+  const dueReviews=SRS.due(st.reviews,today);
+  const totalMin=Stats.totalMinutes(st.records);
+  const sg=Stats.strengths(st.records);
+
+  // 주간 진도율: 이번 주 7일 중 완료한 카드 비율
+  let wkDone=0, wkTotal=0;
+  for(let i=0;i<7;i++){ const d=Util.addDays(today,-i); const cs=st.daily[d]||[]; wkTotal+=cs.length; wkDone+=cs.filter(c=>c.done).length; }
+  const wkRate=wkTotal?Math.round(wkDone/wkTotal*100):0;
+
+  view.innerHTML = `
+    <p class="kicker">${new Date().toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'long'})}</p>
+    <h1 style="font-size:clamp(1.8rem,6vw,2.6rem); margin:4px 0 22px">오늘도, 한 걸음 ✦</h1>
+
+    <div class="grid cols-3" style="margin-bottom:8px">
+      <div class="card"><div class="stat"><span class="n">${doneToday}<small>/${todayCards.length}</small></span><span class="l">오늘의 학습</span></div></div>
+      <div class="card"><div class="stat"><span class="n">${wkRate}<small>%</small></span><span class="l">주간 진도율</span></div></div>
+      <div class="card"><div class="stat"><span class="n">${Math.floor(totalMin/60)}<small>시간 ${totalMin%60}분</small></span><span class="l">누적 학습</span></div></div>
+    </div>
+
+    <div class="section-title"><h2>오늘의 학습</h2><span class="rule"></span></div>
+    <div class="card">
+      ${todayCards.length? todayCards.map(c=>`
+        <div class="row">
+          <div class="lead">${c.done?'✓':'✎'}</div>
+          <div class="body"><b>${Util.esc(c.label)}</b><small>Lesson ${c.lessonNo} ${c.done?'· 완료':''}</small></div>
+          <button class="btn ${c.done?'ghost':''}" style="padding:9px 16px; min-height:38px" onclick="openLesson('${c.key}','${c.cardId}')">${c.done?'다시 보기':'학습'}</button>
+        </div>`).join('') : `<div class="empty"><div class="big">✎</div>등록된 학습이 없어요. 설정에서 과목을 추가해보세요.</div>`}
+    </div>
+
+    <div class="grid cols-2" style="margin-top:8px">
+      <div>
+        <div class="section-title"><h2>복습 예정</h2><span class="rule"></span></div>
+        <div class="card">
+          ${dueReviews.length? dueReviews.slice(0,5).map(r=>`
+            <div class="row"><div class="lead">↺</div><div class="body"><b>${Util.esc(r.label)}</b><small>${SRS.INTERVALS[r.stage]}일 간격 복습</small></div></div>`).join('')
+            + `<button class="btn block" style="margin-top:14px" onclick="navigate('review')">복습 시작 (${dueReviews.length}개)</button>`
+            : `<div class="empty"><div class="big">↺</div>지금 복습할 항목이 없어요</div>`}
+        </div>
+      </div>
+      <div>
+        <div class="section-title"><h2>강점 · 약점</h2><span class="rule"></span></div>
+        <div class="card">
+          <p class="muted" style="font-size:.82rem; margin-bottom:8px">강점 💪</p>
+          ${sg.strong.length? sg.strong.map(s=>`<span class="pill" style="margin:0 6px 6px 0">${Util.esc(s.label)} ${Math.round(s.rate*100)}%</span>`).join('') : `<span class="muted" style="font-size:.85rem">아직 데이터가 모이는 중</span>`}
+          <p class="muted" style="font-size:.82rem; margin:16px 0 8px">보완하면 좋아요 🌱</p>
+          ${sg.weak.length? sg.weak.map(s=>`<span class="pill" style="margin:0 6px 6px 0; border-color:var(--danger)">${Util.esc(s.label)} ${Math.round(s.rate*100)}%</span>`).join('') : `<span class="muted" style="font-size:.85rem">아직 약점이 없어요!</span>`}
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title"><h2>과목별 진도율</h2><span class="rule"></span></div>
+    <div class="card">
+      ${st.enrolled.length? st.enrolled.map(e=>{ const p=st.progress[e.key]||{lesson:1,unitIndex:0}; const f=st.curriculum.find(x=>x.id===e.fieldId); const sub=f.subjects.find(x=>x.id===e.subjectId); const total=sub.units.length; const rate=Math.round(((p.unitIndex||0)/total)*100);
+        return `<div style="margin-bottom:16px">
+          <div style="display:flex; justify-content:space-between; font-size:.88rem; margin-bottom:6px"><span><b>${Util.esc(e.fieldName)} · ${Util.esc(e.subjectName)}</b> <span class="muted">(${e.levelName})</span></span><span class="muted">${e.unitName} · ${rate}%</span></div>
+          <div class="bar"><i style="width:${rate}%"></i></div>
+        </div>`; }).join('') : `<div class="empty">등록된 과목이 없어요</div>`}
+    </div>`;
+};
+
+/* ----- 학습 카드 열기 (모달) ----- */
+window.openLesson = function(key, cardId){
+  const e=Store.state.enrolled.find(x=>x.key===key); if(!e)return;
+  const lessonNo=parseInt(cardId.split('#')[1])||1;
+  const card=ContentEngine.generateCard({field:e.fieldName,subject:e.subjectName,unit:e.unitName,subtopicId:e.key,lessonNo,mode:e.mode,level:e.level,levelName:e.levelName});
+  Store._activeLesson={key,card,startTime:Date.now()};
+  renderLesson(card,false);
+};
+function renderLesson(card, answered){
+  const e=Store.state.enrolled.find(x=>x.key===Store._activeLesson.key);
+  openModal(`
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px">
+      <p class="kicker">${Util.esc(e.fieldName)} · ${Util.esc(e.subjectName)} · ${Util.esc(e.unitName)}</p>
+      <button class="icon-btn" onclick="closeModal()" style="width:36px;height:36px">✕</button>
+    </div>
+    <h2 style="margin-bottom:4px">${Util.esc(card.title)}</h2>
+    <span class="pill" style="margin-bottom:16px">난이도: ${e.levelName}</span>
+
+    <div class="lesson-sec"><h4><span class="dot"></span>개념 설명 (쉽게)</h4><p>${Util.esc(card.concept)}</p></div>
+    <div class="lesson-sec"><div class="kid"><h4><span class="dot"></span>초등학생도 이해하는 설명</h4><p>${Util.esc(card.kidExplain)}</p></div></div>
+    <div class="lesson-sec"><h4><span class="dot"></span>실제 예시</h4><pre>${Util.esc(card.example)}</pre></div>
+
+    <div class="lesson-sec"><h4><span class="dot"></span>학습 방식</h4>
+      ${card.methodSections.map(m=>`<div style="margin-bottom:12px"><b style="font-size:.9rem">${Util.esc(m.title)}</b><pre style="margin-top:5px">${Util.esc(m.body)}</pre></div>`).join('')}
+    </div>
+
+    <div class="lesson-sec"><h4><span class="dot"></span>퀴즈</h4>
+      <p style="color:var(--ink); margin-bottom:12px">${Util.esc(card.quiz)}</p>
+      <div id="quizOpts">
+        ${card.options.map((o,i)=>`<button class="quiz-opt" data-i="${i}" onclick="answerQuiz(${i})"><span class="lab">${String.fromCharCode(65+i)}</span><span>${Util.esc(o)}</span></button>`).join('')}
+      </div>
+      <div id="quizResult"></div>
+    </div>
+  `);
+}
+window.answerQuiz = function(i){
+  const {card}=Store._activeLesson;
+  const correct = i===card.answerIndex;
+  document.querySelectorAll('#quizOpts .quiz-opt').forEach(b=>{ b.onclick=null; const bi=+b.dataset.i; if(bi===card.answerIndex)b.classList.add('correct'); else if(bi===i)b.classList.add('wrong'); });
+  // 퀴즈 기록 저장
+  Store.state.records.push({type:'quiz', date:Util.today(), key:Store._activeLesson.key, label:`${card.ctx.field} · ${card.ctx.subject}`, correct});
+  $('#quizResult').innerHTML = `
+    <div class="lesson-sec" style="border-top:none; margin-top:14px; padding-top:0">
+      <div class="card" style="background:var(--bg-2); box-shadow:none">
+        <b style="color:${correct?'var(--ok)':'var(--danger)'}">${correct?'정답이에요! 🎉':'아쉬워요, 다시 볼까요?'}</b>
+        <p style="margin:8px 0; font-size:.9rem">${Util.esc(card.answer)}</p>
+        <pre style="font-size:.85rem">${Util.esc(card.wrongExplain)}</pre>
+      </div>
+      <button class="btn block gold" style="margin-top:14px" onclick="completeLesson()">학습 완료 & 회고 쓰기 ✎</button>
+    </div>`;
+  $('#quizResult').scrollIntoView?.({behavior:'smooth',block:'nearest'});
+  Store.save();
+};
+
+/* ----- 학습 완료 → 회고 작성 ----- */
+window.completeLesson = function(){
+  const {key,card,startTime}=Store._activeLesson;
+  const minutes=Math.max(1,Math.round((Date.now()-startTime)/60000));
+  const e=Store.state.enrolled.find(x=>x.key===key);
+  // 오늘 카드 완료 표시 + 학습시간 기록 + 다음 레슨으로 진도 이동
+  const today=Util.today();
+  (Store.state.daily[today]||[]).forEach(c=>{ if(c.key===key)c.done=true; });
+  Store.state.records.push({type:'study', date:today, key, label:`${e.fieldName} · ${e.subjectName}`, minutes});
+  // 진도 전진: 레슨 +1, 단원 3레슨마다 다음 단원으로
+  const p=Store.state.progress[key]||{lesson:1,unitIndex:0,completedUnits:[]};
+  p.lesson=(p.lesson||1)+1;
+  const f=Store.state.curriculum.find(x=>x.id===e.fieldId); const sub=f.subjects.find(x=>x.id===e.subjectId);
+  let unitCompleted=false;
+  if(p.lesson>3){ p.lesson=1; p.unitIndex=(p.unitIndex||0)+1; unitCompleted=true; if(p.unitIndex>=sub.units.length)p.unitIndex=0; e.unitName=sub.units[p.unitIndex]; }
+  Store.state.progress[key]=p;
+  // SRS 복습 예약 (1·3·7·30일)
+  Store.state.reviews.push(SRS.schedule(card.id, today, `${e.fieldName} · ${e.subjectName} · ${card.title}`));
+  Store.save();
+  // 회고 화면
+  openModal(`
+    <p class="kicker">학습 회고</p>
+    <h2 style="margin:6px 0 6px">오늘 배운 내용을 적어보세요</h2>
+    <p class="muted" style="margin-bottom:16px">내 말로 정리하면 기억에 훨씬 오래 남아요. AI가 요약과 피드백을 드릴게요.</p>
+    <textarea class="input" id="reflectText" placeholder="예) 오늘은 ${Util.esc(e.unitName)}에서 '${Util.esc(card.ctx.unit)}'을 배웠다. 핵심은..."></textarea>
+    <button class="btn block gold" style="margin-top:14px" onclick="saveReflection('${key}')">저장하고 AI 피드백 받기</button>
+    <button class="btn block ghost" style="margin-top:10px" onclick="closeModal();navigate('dashboard')">다음에 쓰기</button>
+    ${unitCompleted?`<p class="pill" style="margin-top:14px; border-color:var(--gold)">🎓 단원 완료! 다음 단원으로 진급했어요</p>`:''}
+  `);
+};
+window.saveReflection = function(key){
+  const text=$('#reflectText').value.trim();
+  if(!text){ toast('내용을 입력해주세요'); return; }
+  const e=Store.state.enrolled.find(x=>x.key===key);
+  const {aiSummary,aiFeedback}=generateAIFeedback(text);
+  Store.state.reflections.push({date:Util.today(), key, label:`${e.fieldName} · ${e.subjectName}`, text, aiSummary, aiFeedback});
+  Store.save();
+  openModal(`
+    <p class="kicker">AI 피드백</p>
+    <h2 style="margin:6px 0 16px">잘 정리했어요 ✦</h2>
+    <div class="card" style="background:var(--bg-2); box-shadow:none; margin-bottom:12px">
+      <b style="color:var(--accent)">📝 요약</b><p style="margin-top:8px; font-size:.92rem">${Util.esc(aiSummary)}</p>
+    </div>
+    <div class="kid"><b style="color:var(--gold)">💬 AI 코치의 한마디</b><p style="margin-top:8px; font-size:.92rem">${Util.esc(aiFeedback)}</p></div>
+    <button class="btn block" style="margin-top:16px" onclick="closeModal();navigate('dashboard')">완료 ✓</button>
+  `);
+  toast('회고가 저장되었어요');
+};
+/* 회고 기반 AI 요약/피드백 (오프라인 규칙 기반. LLM 연동 시 교체 지점) */
+function generateAIFeedback(text){
+  const words=text.split(/\s+/).filter(Boolean).length;
+  const summary = text.length>80 ? text.slice(0,78).trim()+'…' : text;
+  let feedback;
+  if(words<10) feedback='좋은 시작이에요! 다음엔 "왜 그런지" 이유를 한 줄만 더 붙여보면 이해가 두 배로 단단해져요.';
+  else if(words<30) feedback='핵심을 잘 짚었어요. 배운 내용을 "친구에게 설명한다면?"이라고 상상하며 한 번 더 말해보면 완전히 내 것이 됩니다.';
+  else feedback='아주 깊이 있게 정리했네요! 이 정도면 며칠 뒤 복습에서도 쉽게 떠올릴 거예요. 다음 레슨도 같은 호흡으로 가봅시다.';
+  return {aiSummary:`핵심 정리: ${summary} (총 ${words}단어로 정리함)`, aiFeedback:feedback};
+}
+
+/* ----- 학습 탭(전체 과목/단원 탐색) ----- */
+Views.study = function(){
+  const st=Store.state;
+  view.innerHTML = `
+    <p class="kicker">커리큘럼</p>
+    <h1 style="font-size:clamp(1.8rem,6vw,2.4rem); margin:4px 0 6px">나의 강의실</h1>
+    <p class="muted" style="margin-bottom:20px">분야 → 과목 → 단원 구조로 학습합니다. 각 단원은 레슨 3개로 구성되며, 완료하면 다음 단원으로 진급해요.</p>
+    ${st.enrolled.length? st.enrolled.map(e=>{ const p=st.progress[e.key]||{lesson:1,unitIndex:0}; const f=st.curriculum.find(x=>x.id===e.fieldId); const sub=f.subjects.find(x=>x.id===e.subjectId);
+      return `<div class="card" style="margin-bottom:14px">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px">
+          <div><b style="font-family:var(--font-display); font-size:1.15rem">${Util.esc(e.fieldName)} · ${Util.esc(e.subjectName)}</b><br><span class="muted" style="font-size:.82rem">${e.levelName} · 현재 단원: ${Util.esc(e.unitName)} · Lesson ${p.lesson}</span></div>
+          <button class="btn" style="padding:9px 16px; min-height:38px" onclick="startCurrentLesson('${e.key}')">이어서 학습 →</button>
+        </div>
+        <div class="chips">
+          ${sub.units.map((u,ui)=>`<span class="chip ${ui<(p.unitIndex||0)?'on':''}" style="${ui===(p.unitIndex||0)?'border-color:var(--gold)':''}">${ui<(p.unitIndex||0)?'✓ ':''}${Util.esc(u)}</span>`).join('')}
+        </div>
+      </div>`; }).join('') : `<div class="empty"><div class="big">✎</div>등록된 과목이 없어요.<br><button class="btn" style="margin-top:14px" onclick="navigate('settings')">과목 추가하기</button></div>`}
+  `;
+};
+window.startCurrentLesson = function(key){ const p=Store.state.progress[key]||{lesson:1}; openLesson(key, `${key}#${p.lesson||1}`); };
+
+/* ----- 복습 탭 ----- */
+Views.review = function(){
+  const st=Store.state, today=Util.today();
+  const due=SRS.due(st.reviews,today);
+  view.innerHTML = `
+    <p class="kicker">간격 반복 복습</p>
+    <h1 style="font-size:clamp(1.8rem,6vw,2.4rem); margin:4px 0 6px">복습 ↺</h1>
+    <p class="muted" style="margin-bottom:20px">학습 후 1일·3일·7일·30일 간격으로 자동 복습을 예약합니다. 망각곡선에 맞춰 기억을 오래 붙잡아요.</p>
+    <div class="card">
+      ${due.length? due.map((r,idx)=>`
+        <div class="row">
+          <div class="lead">↺</div>
+          <div class="body"><b>${Util.esc(r.label)}</b><small>${SRS.INTERVALS[r.stage]}일 간격 · ${r.history.length}회 복습함</small></div>
+          <div style="display:flex; gap:6px">
+            <button class="btn ghost" style="padding:8px 12px;min-height:36px" onclick="doReview(${st.reviews.indexOf(r)},false)">어려움</button>
+            <button class="btn" style="padding:8px 14px;min-height:36px" onclick="doReview(${st.reviews.indexOf(r)},true)">기억남 ✓</button>
+          </div>
+        </div>`).join('') : `<div class="empty"><div class="big">✓</div>오늘 복습할 항목이 없어요!<br><span style="font-size:.85rem">학습을 완료하면 복습이 자동으로 예약됩니다.</span></div>`}
+    </div>
+    ${st.reviews.filter(r=>r.done).length?`<p class="muted" style="margin-top:16px; font-size:.85rem; text-align:center">🏆 마스터한 항목: ${st.reviews.filter(r=>r.done).length}개</p>`:''}
+  `;
+};
+window.doReview = function(idx, pass){
+  SRS.review(Store.state.reviews[idx], pass, Util.today());
+  Store.save();
+  toast(pass?'좋아요! 다음 간격으로 미뤘어요':'괜찮아요, 곧 다시 보여드릴게요');
+  Views.review();
+};
+
+/* ----- 일정 탭 ----- */
+Views.schedule = function(){
+  const st=Store.state;
+  const subjects=st.enrolled.map(e=>{ const sg=Stats.strengths(st.records).all.find(x=>x.key===e.key); return {fieldName:e.fieldName,subjectName:e.subjectName,weakness:sg?1-sg.rate:0.5}; });
+  const week=Scheduler.weeklyPlan(subjects,st.schedule);
+  const month=Scheduler.monthlyPlan(subjects,st.schedule);
+  view.innerHTML = `
+    <p class="kicker">스케줄</p>
+    <h1 style="font-size:clamp(1.8rem,6vw,2.4rem); margin:4px 0 6px">학습 일정 ◷</h1>
+    <p class="muted" style="margin-bottom:20px">가용 시간을 입력하면 AI가 주간·월간 계획을 만들고, 약한 과목에 시간을 더 배분해요.</p>
+
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin-bottom:14px">나의 가용 시간</h3>
+      <div class="field"><label>평일</label><input class="input" id="sc-weekday" value="${st.schedule.weekday}"></div>
+      <div class="field"><label>주말</label><input class="input" id="sc-weekend" value="${st.schedule.weekend}"></div>
+      <button class="btn" onclick="saveSchedule()">저장 & 다시 계산</button>
+    </div>
+
+    <div class="section-title"><h2>주간 계획</h2><span class="rule"></span></div>
+    <div class="card" style="margin-bottom:8px">
+      ${week.map(d=>`
+        <div class="row">
+          <div class="lead" style="font-family:var(--font-display); font-weight:600">${d.day}</div>
+          <div class="body">
+            <b>${d.minutes? Math.floor(d.minutes/60)+'시간 '+(d.minutes%60)+'분' : '휴식'}</b>
+            ${d.slots.length?`<small>${d.slots.map(s=>Util.esc(s.label)+' '+s.minutes+'분').join(' · ')}</small>`:''}
+          </div>
+        </div>`).join('')}
+    </div>
+
+    <div class="section-title"><h2>월간 계획</h2><span class="rule"></span></div>
+    <div class="grid cols-2">
+      ${month.map(m=>`<div class="card"><div class="stat"><span class="l">${m.week}주차</span><span class="n" style="font-size:1.3rem">${Math.floor(m.totalMinutes/60)}시간/주</span></div>
+        ${m.focus?`<p class="pill" style="margin-top:12px; border-color:var(--gold)">집중: ${Util.esc(m.focus.fieldName)} · ${Util.esc(m.focus.subjectName)}</p>`:'<p class="muted" style="margin-top:12px;font-size:.85rem">과목을 추가하세요</p>'}
+      </div>`).join('')}
+    </div>`;
+};
+window.saveSchedule = async function(){
+  Store.state.schedule.weekday=$('#sc-weekday').value.trim();
+  Store.state.schedule.weekend=$('#sc-weekend').value.trim();
+  await Store.save(); toast('일정을 다시 계산했어요'); Views.schedule();
+};
+
+/* ----- 기록 탭 ----- */
+Views.records = function(){
+  const st=Store.state;
+  const quizzes=st.records.filter(r=>r.type==='quiz');
+  const acc=quizzes.length?Math.round(quizzes.filter(r=>r.correct).length/quizzes.length*100):0;
+  const studyDays=new Set(st.records.filter(r=>r.type==='study').map(r=>r.date)).size;
+  view.innerHTML = `
+    <p class="kicker">학습 기록</p>
+    <h1 style="font-size:clamp(1.8rem,6vw,2.4rem); margin:4px 0 20px">나의 발자취 ❏</h1>
+
+    <div class="grid cols-3" style="margin-bottom:8px">
+      <div class="card"><div class="stat"><span class="n">${studyDays}<small>일</small></span><span class="l">학습한 날</span></div></div>
+      <div class="card"><div class="stat"><span class="n">${acc}<small>%</small></span><span class="l">퀴즈 정답률</span></div></div>
+      <div class="card"><div class="stat"><span class="n">${st.reflections.length}<small>개</small></span><span class="l">작성한 회고</span></div></div>
+    </div>
+
+    <div class="section-title"><h2>회고 모음</h2><span class="rule"></span></div>
+    <div class="card">
+      ${st.reflections.length? st.reflections.slice().reverse().map(r=>`
+        <div class="row" style="align-items:flex-start">
+          <div class="lead">✎</div>
+          <div class="body" style="white-space:normal">
+            <b style="white-space:normal">${Util.esc(r.label)} <span class="muted" style="font-weight:400">· ${r.date}</span></b>
+            <p style="font-size:.88rem; color:var(--ink-soft); margin:4px 0">${Util.esc(r.text)}</p>
+            <p style="font-size:.82rem; color:var(--gold)">💬 ${Util.esc(r.aiFeedback)}</p>
+          </div>
+        </div>`).join('') : `<div class="empty"><div class="big">✎</div>아직 작성한 회고가 없어요</div>`}
+    </div>
+
+    <div class="section-title"><h2>최근 학습 활동</h2><span class="rule"></span></div>
+    <div class="card">
+      ${st.records.length? st.records.slice(-12).reverse().map(r=>`
+        <div class="row">
+          <div class="lead">${r.type==='quiz'?(r.correct?'✓':'✗'):'✎'}</div>
+          <div class="body"><b>${Util.esc(r.label)}</b><small>${r.date} · ${r.type==='quiz'?(r.correct?'정답':'오답'):'학습 '+(r.minutes||0)+'분'}</small></div>
+        </div>`).join('') : `<div class="empty">기록이 쌓이는 중이에요</div>`}
+    </div>`;
+};
+
+/* ----- 설정 탭 ----- */
+Views.settings = function(){
+  const st=Store.state;
+  view.innerHTML = `
+    <p class="kicker">설정</p>
+    <h1 style="font-size:clamp(1.8rem,6vw,2.4rem); margin:4px 0 20px">설정 ⚙</h1>
+
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin-bottom:14px">테마</h3>
+      <div class="chips">
+        <button class="chip ${st.theme==='dark'?'on':''}" onclick="setTheme('dark')">☾ 다크 (한밤의 도서관)</button>
+        <button class="chip ${st.theme==='light'?'on':''}" onclick="setTheme('light')">☀ 라이트 (파치먼트)</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin-bottom:6px">등록 과목 & 난이도</h3>
+      <p class="muted" style="font-size:.83rem; margin-bottom:14px">난이도는 언제든 바꿀 수 있어요. AI가 즉시 맞춰 생성합니다.</p>
+      ${st.enrolled.map(e=>`
+        <div class="row">
+          <div class="body"><b>${Util.esc(e.fieldName)} · ${Util.esc(e.subjectName)}</b></div>
+          <select class="input" style="width:auto; padding:8px 12px" onchange="changeLevel('${e.key}',this.value)">
+            ${LEVELS.map(l=>`<option value="${l.id}" ${e.level===l.id?'selected':''}>${l.name}</option>`).join('')}
+          </select>
+          <button class="icon-btn" style="width:38px;height:38px" onclick="removeSubject('${e.key}')" title="제거">✕</button>
+        </div>`).join('') || '<p class="muted" style="font-size:.85rem">등록된 과목이 없어요</p>'}
+      <button class="btn block ghost" style="margin-top:14px" onclick="openAddSubject()">+ 과목 추가</button>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin-bottom:6px">새 분야/과목 만들기</h3>
+      <p class="muted" style="font-size:.83rem; margin-bottom:14px">기본 제공 외에 나만의 분야와 과목을 추가할 수 있어요.</p>
+      <button class="btn ghost block" onclick="openCustomField()">+ 커스텀 분야 추가</button>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin-bottom:6px">데이터 ${cloudMode?'· ☁ 클라우드 동기화 켜짐':'· 이 기기에만 저장'}</h3>
+      <p class="muted" style="font-size:.83rem; margin-bottom:14px">${cloudMode?'폰·PC에서 같은 계정으로 로그인하면 학습 데이터가 자동으로 같아집니다.':'모든 학습 기록은 이 기기에 저장됩니다(LocalStorage). 코드 상단의 Supabase 설정을 채우면 폰·PC 자동 동기화로 바뀝니다.'}</p>
+      <button class="btn ghost block" style="margin-bottom:10px" onclick="exportData()">학습 데이터 내보내기 (JSON)</button>
+      ${cloudMode?`<button class="btn ghost block" style="margin-bottom:10px" onclick="cloudSignOut()">로그아웃</button>`:''}
+      <button class="btn ghost block" onclick="confirmReset()" style="color:var(--danger); border-color:var(--danger)">전체 초기화</button>
+    </div>
+
+    <p class="muted" style="text-align:center; font-size:.78rem; margin-top:20px">AI Personal University · 평생 학습을 위한 개인 대학</p>`;
+};
+window.setTheme = async (t)=>{ Store.state.theme=t; applyTheme(t); await Store.save(); Views.settings(); };
+window.changeLevel = async (key,level)=>{ const e=Store.state.enrolled.find(x=>x.key===key); e.level=level; e.levelName=LEVELS.find(l=>l.id===level).name; await Store.save(); toast(`난이도를 ${e.levelName}(으)로 변경했어요`); };
+window.removeSubject = async (key)=>{ Store.state.enrolled=Store.state.enrolled.filter(x=>x.key!==key); delete Store.state.progress[key]; await Store.save(); Views.settings(); toast('과목을 제거했어요'); };
+
+window.openAddSubject = function(){
+  const st=Store.state;
+  openModal(`
+    <p class="kicker">과목 추가</p>
+    <h2 style="margin:6px 0 16px">어떤 과목을 추가할까요?</h2>
+    ${st.curriculum.map(f=>`
+      <div style="margin-bottom:16px">
+        <b style="font-family:var(--font-display)">${f.icon||'◆'} ${Util.esc(f.name)}</b>
+        <div class="chips" style="margin-top:8px">
+          ${f.subjects.map(sub=>{ const key=f.id+'/'+sub.id; const has=st.enrolled.some(e=>e.key===key);
+            return `<button class="chip ${has?'on':''}" ${has?'disabled':''} onclick="addSubject('${f.id}','${sub.id}')">${has?'✓ ':''}${Util.esc(sub.name)}</button>`;}).join('')}
+        </div>
+      </div>`).join('')}
+    <button class="btn block ghost" style="margin-top:10px" onclick="closeModal()">닫기</button>`);
+};
+window.addSubject = async function(fid,sid){
+  const f=Store.state.curriculum.find(x=>x.id===fid); const sub=f.subjects.find(x=>x.id===sid); const key=fid+'/'+sid;
+  if(Store.state.enrolled.some(e=>e.key===key))return;
+  Store.state.progress[key]={lesson:1,unitIndex:0,completedUnits:[]};
+  Store.state.enrolled.push({key,fieldId:fid,fieldName:f.name,mode:sub.mode||f.mode,subjectId:sid,subjectName:sub.name,unitName:sub.units[0],level:'beginner',levelName:'초급'});
+  Store.state.lastGenerated=null; // 다음 생성에 포함되도록
+  await ensureDailyGeneration(); await Store.save();
+  toast(`${sub.name} 과목을 추가했어요`); openAddSubject();
+};
+
+window.openCustomField = function(){
+  openModal(`
+    <p class="kicker">커스텀 분야</p>
+    <h2 style="margin:6px 0 16px">나만의 분야 만들기</h2>
+    <div class="field"><label>분야 이름</label><input class="input" id="cf-field" placeholder="예: 음악 이론"></div>
+    <div class="field"><label>첫 과목 이름</label><input class="input" id="cf-subject" placeholder="예: 화성학"></div>
+    <div class="field"><label>단원 (쉼표로 구분)</label><input class="input" id="cf-units" placeholder="예: 음정, 코드, 진행, 조성"></div>
+    <button class="btn block gold" onclick="addCustomField()">만들기 ✦</button>
+    <button class="btn block ghost" style="margin-top:10px" onclick="closeModal()">취소</button>`);
+};
+window.addCustomField = async function(){
+  const fname=$('#cf-field').value.trim(), sname=$('#cf-subject').value.trim();
+  const units=$('#cf-units').value.split(',').map(s=>s.trim()).filter(Boolean);
+  if(!fname||!sname||!units.length){ toast('모든 칸을 채워주세요'); return; }
+  const fid='custom-'+Util.uid(), sid='sub-'+Util.uid();
+  Store.state.curriculum.push({id:fid,name:fname,mode:'concept',icon:'✧',subjects:[{id:sid,name:sname,units}]});
+  await Store.save();
+  closeModal(); toast(`"${fname}" 분야를 만들었어요`); openAddSubject();
+};
+
+window.exportData = function(){
+  const blob=new Blob([JSON.stringify(Store.state,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='apu-backup-'+Util.today()+'.json'; a.click();
+  toast('백업 파일을 내려받았어요');
+};
+window.confirmReset = function(){
+  openModal(`<h2 style="margin-bottom:10px">정말 초기화할까요?</h2>
+    <p class="muted" style="margin-bottom:20px">모든 학습 기록·진도·회고가 삭제됩니다. 되돌릴 수 없어요.</p>
+    <button class="btn block" style="background:var(--danger); margin-bottom:10px" onclick="doReset()">네, 전체 초기화</button>
+    <button class="btn block ghost" onclick="closeModal()">취소</button>`);
+};
+window.doReset = async function(){ await Store.reset(); closeModal(); onboard={step:0,fields:new Set(),subjects:new Map(),level:'beginner',schedule:{weekday:'20:00~22:00',weekend:'13:00~20:00'}}; boot(); };
+
+/* expose navigate/closeModal for inline handlers */
+window.navigate=navigate; window.closeModal=closeModal;
+
+/* =====================================================================
+ *  클라우드 인증(이메일+비밀번호) — 클라우드 모드일 때만 사용
+ * ===================================================================== */
+async function initCloud(){
+  if(!(CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY)) return false;
+  try{
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    SB = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+    cloudMode = true;
+    // 로그인 상태가 바뀌면 자동으로 다시 부팅
+    SB.auth.onAuthStateChange((_e, session)=>{ if(session && !DB.uid) startApp(session); });
+    return true;
+  }catch(e){ console.warn('클라우드 초기화 실패, 오프라인으로 진행:', e.message); cloudMode=false; return false; }
+}
+function renderLogin(){
+  $('#tabbar').style.display='none'; $('#sidenav').style.display='none';
+  view.innerHTML = `<div class="onboard">
+    <p class="kicker">클라우드 로그인</p>
+    <h1 class="hero-title">폰·PC에서<br><em>같은 진도</em>로 이어가기</h1>
+    <p class="muted" style="margin-bottom:24px">같은 이메일로 로그인하면 어느 기기에서든 학습 데이터가 자동으로 같아집니다.</p>
+    <div class="field"><label>이메일</label><input class="input" id="au-email" type="email" placeholder="me@example.com"></div>
+    <div class="field"><label>비밀번호</label><input class="input" id="au-pw" type="password" placeholder="6자 이상"></div>
+    <button class="btn block gold" onclick="cloudSignIn()">로그인</button>
+    <button class="btn block ghost" style="margin-top:10px" onclick="cloudSignUp()">처음이에요 · 계정 만들기</button>
+    <p class="muted" style="font-size:.78rem;margin-top:16px;text-align:center">비밀번호는 Supabase가 안전하게 보관하며, 이 앱은 저장하지 않습니다.</p>
+  </div>`;
+}
+window.cloudSignUp = async function(){
+  const email=$('#au-email').value.trim(), password=$('#au-pw').value;
+  if(!email||password.length<6){ toast('이메일과 6자 이상 비밀번호를 입력하세요'); return; }
+  const { data, error } = await SB.auth.signUp({ email, password });
+  if(error){ toast('가입 실패: '+error.message); return; }
+  if(data.session){ toast('가입 완료!'); startApp(data.session); }
+  else toast('확인 메일을 보냈어요. 메일의 링크를 누른 뒤 로그인하세요.');
+};
+window.cloudSignIn = async function(){
+  const email=$('#au-email').value.trim(), password=$('#au-pw').value;
+  if(!email||!password){ toast('이메일과 비밀번호를 입력하세요'); return; }
+  const { data, error } = await SB.auth.signInWithPassword({ email, password });
+  if(error){ toast('로그인 실패: '+error.message); return; }
+  startApp(data.session);
+};
+window.cloudSignOut = async function(){ if(SB){ await Store.flush(); await SB.auth.signOut(); } location.reload(); };
+
+/* 로컬에만 있던 기록을 첫 로그인 때 클라우드로 이전 */
+async function migrateLocalToCloud(){
+  const cloud = await DB.get('state');
+  if(cloud) return;                       // 이미 클라우드에 데이터 있음
+  const localState = await new LocalStorageAdapter('apu:').get('state');
+  if(localState && localState.onboarded){ await DB.set('state', localState); toast('이 기기의 기록을 클라우드로 옮겼어요'); }
+}
+
+/* 세션 확보 후 실제 앱 시작 */
+async function startApp(session){
+  DB = new SupabaseStorageAdapter(SB, session.user.id);
+  await migrateLocalToCloud();
+  $('#tabbar').style.display=''; $('#sidenav').style.display='';
+  await runApp();
+}
+
+/* =====================================================================
+ *  부팅
+ * ===================================================================== */
+async function runApp(){
+  await Store.load();
+  applyTheme(Store.state.theme||'dark');
+  if(!Store.state.onboarded){ renderNav(); Views.onboard(); }
+  else { await ensureDailyGeneration(); renderNav(); navigate('dashboard'); }
+}
+async function boot(){
+  const ok = await initCloud();
+  if(ok){
+    const { data:{ session } } = await SB.auth.getSession();
+    if(session){ await startApp(session); }      // 이미 로그인됨
+    else { applyTheme('dark'); renderLogin(); }   // 로그인 화면
+  } else {
+    await runApp();                               // 오프라인 모드
+  }
+}
+/* 페이지를 닫기 전 클라우드 저장 보장(디바운스 잔여분 flush) */
+window.addEventListener('beforeunload', ()=>{ if(cloudMode) Store.flush(); });
+boot();
+</script>
+</body>
+</html>
