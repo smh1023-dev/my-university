@@ -188,6 +188,8 @@ textarea.input{resize:vertical; min-height:120px; line-height:1.65}
 }
 @media(min-width:680px){ .modal{border-radius:24px} }
 @keyframes slideup{from{transform:translateY(40px); opacity:.4} to{transform:translateY(0); opacity:1}}
+.spinner{width:38px; height:38px; border-radius:50%; border:3px solid var(--line); border-top-color:var(--accent); animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 /* 페이지 진입 애니메이션(스태거) */
 .view>*{animation:rise .5s var(--ease) backwards}
@@ -306,8 +308,8 @@ textarea.input{resize:vertical; min-height:120px; line-height:1.65}
  *  (자세한 설정 순서는 함께 드린 안내서를 참고하세요.)
  * ===================================================================== */
 const CONFIG = {
-  SUPABASE_URL: 'https://iubxgglykomvrzqvwgbs.supabase.co',
-  SUPABASE_ANON_KEY: 'sb_publishable_5FgFcFvUYlJgMyWS4bXl7g_04vmyHpM',
+  SUPABASE_URL: '',        // 예: 'https://abcd1234.supabase.co'
+  SUPABASE_ANON_KEY: '',   // 예: 'eyJhbGciOi...'
 };
 let SB = null;             // Supabase 클라이언트 (클라우드 모드에서 채워짐)
 let cloudMode = false;     // 클라우드 동기화 사용 여부
@@ -362,7 +364,7 @@ const DEFAULT_CURRICULUM = [
     { id:'toefl', name:'TOEFL', units:['Reading','Listening','Speaking','Writing'] },
     { id:'gre', name:'GRE', mode:'gre', units:['Reading','Text Completion','Quantitative','Analytical Writing'] },
     { id:'lsat', name:'LSAT', mode:'lsat', units:['Logical Reasoning','Reading Comprehension','Analytical Reasoning'] },
-    { id:'gmat', name:'GMAT', units:['Verbal','Quantitative','Integrated Reasoning','Data Insights'] },
+    { id:'gmat', name:'GMAT', mode:'gmat', units:['Verbal','Quantitative','Integrated Reasoning','Data Insights'] },
   ]},
   { id:'cs', name:'컴퓨터공학', mode:'coding', icon:'◈', subjects:[
     { id:'scratch', name:'Scratch', units:['블록 기초','이벤트','반복과 조건','나만의 게임'] },
@@ -381,8 +383,9 @@ const DEFAULT_CURRICULUM = [
     { id:'linalg', name:'선형대수', units:['벡터','행렬','행렬식','고유값','선형변환'] },
     { id:'calc', name:'미적분', units:['극한','미분','적분','다변수'] },
     { id:'prob', name:'확률', units:['경우의 수','조건부확률','확률분포','기댓값'] },
-    { id:'stat', name:'통계', units:['기술통계','추정','가설검정','회귀분석'] },
-    { id:'opt', name:'최적화', units:['선형계획','경사하강','제약 최적화','볼록최적화'] },
+    { id:'stat', name:'통계', mode:'data', units:['크롤링(데이터 수집)','데이터 정리','과거 데이터 분석','시각화','상관·가설검정','회귀/예측 모델링','최적화'] },
+    { id:'opt', name:'최적화', mode:'data', units:['문제 정의','선형계획(LP)','경사하강 실습','제약 최적화','시뮬레이션'] },
+    { id:'stat-model', name:'통계 모델링', mode:'data', units:['회귀 모델','분류 모델','시계열 예측','클러스터링','모델 평가·검증'] },
   ]},
   { id:'design', name:'디자인', mode:'design', icon:'◐', subjects:[
     { id:'color', name:'색채', units:['색의 기본','색상환','배색','감정과 색'] },
@@ -391,6 +394,13 @@ const DEFAULT_CURRICULUM = [
     { id:'uiux', name:'UI/UX', units:['사용자 흐름','컴포넌트','접근성','프로토타이핑'] },
     { id:'brand', name:'브랜딩', units:['브랜드 정체성','로고','톤앤매너','가이드라인'] },
     { id:'ad', name:'광고', units:['카피','비주얼','캠페인','매체 전략'] },
+  ]},
+  { id:'3d', name:'3D 모델링', mode:'3d', icon:'◇', subjects:[
+    { id:'blender-basic', name:'Blender 기초', units:['화면·조작','오브젝트 다루기','이동·회전·크기','단축키 익히기'] },
+    { id:'modeling', name:'모델링', units:['기본 도형 조합','메쉬 편집','모디파이어','곡면 만들기'] },
+    { id:'material', name:'머티리얼·텍스처', units:['색·재질','노드 기초','UV 펼치기','텍스처 입히기'] },
+    { id:'light-render', name:'조명·렌더링', units:['라이팅','카메라','Eevee/Cycles','이미지 출력'] },
+    { id:'anim', name:'애니메이션', units:['키프레임','경로 애니메이션','간단 리깅','영상 렌더'] },
   ]},
   { id:'future', name:'AI & 미래산업', mode:'concept', icon:'✺', subjects:[
     { id:'f-ai', name:'AI', units:['AI의 정의','학습 방식','활용 사례','윤리'] },
@@ -402,9 +412,9 @@ const DEFAULT_CURRICULUM = [
     { id:'space', name:'우주산업', units:['발사체','위성','우주 자원','우주 경제'] },
   ]},
   { id:'biz', name:'비즈니스', mode:'concept', icon:'◆', subjects:[
-    { id:'mkt', name:'마케팅', units:['고객 이해','4P','디지털 마케팅','퍼널'] },
+    { id:'mkt', name:'마케팅 실전', mode:'task', units:['고객·페르소나 정의','채널 선택','콘텐츠/광고 제작','퍼널 설계','성과 측정·개선'] },
     { id:'b-brand', name:'브랜딩', units:['포지셔닝','스토리텔링','충성도','확장'] },
-    { id:'data', name:'데이터분석', units:['지표 설계','시각화','A/B 테스트','인사이트'] },
+    { id:'data', name:'데이터분석', mode:'data', units:['데이터 모으기','정리·전처리','핵심 지표 만들기','시각화','A/B 테스트','인사이트 도출'] },
     { id:'strat', name:'전략', units:['SWOT','경쟁우위','비즈니스 모델','성장'] },
     { id:'decide', name:'의사결정', units:['프레임워크','리스크','편향','실행'] },
   ]},
@@ -463,9 +473,31 @@ const ContentEngine = {
   ].join(' '),
   buildPrompt(ctx){ return `${this.SYSTEM_RULE}\n분야:${ctx.field}/과목:${ctx.subject}/단원:${ctx.unit}/난이도:${ctx.levelName}/레슨:${ctx.lessonNo}\n학습카드 JSON 생성.`; },
 
-  /* [확장 지점] 실제 LLM 사용 시 이 함수를 async 로 바꿔 API 호출 후 동일 JSON 반환.
-     지금은 오프라인에서도 매일 동작하도록 템플릿 기반으로 생성. */
-  generateCard(ctx){
+  /** 모든 분야를 AI로 생성(로그인+온라인일 때). 오프라인/실패 시 자동으로 템플릿 폴백. */
+  isAITarget(ctx){ return true; },
+
+  /** 실제 AI로 카드 생성 (Supabase Edge Function 경유). 서버가 분야에 맞는 kind와
+   *  필드를 돌려주고, 여기서는 퀴즈 부분만 공통 형태로 정규화한다. */
+  async generateCardAI(ctx){
+    if(!(cloudMode && SB)) throw new Error('cloud-off');
+    const { data, error } = await SB.functions.invoke('generate-card', { body: ctx });
+    if(error) throw error;
+    if(!data || data.error) throw new Error((data && data.error) || 'no-data');
+    const q = data.quiz || {};
+    const idx = (typeof q.answerIndex==='number') ? q.answerIndex : 0;
+    return Object.assign({}, data, {
+      id:`${ctx.subtopicId}#${ctx.lessonNo}`, ctx,
+      kind: data.kind || 'concept',
+      title: data.title || `${ctx.unit} · Lesson ${ctx.lessonNo}`,
+      quiz: q.q || '', options: q.options || [], answerIndex: idx,
+      answer: `정답: ${String.fromCharCode(65+idx)}번`,
+      wrongExplain: q.explain || '',
+      generatedAt: new Date().toISOString(),
+    });
+  },
+
+  /* 오프라인/비영어 과목용 템플릿 카드 (인터넷 없이도 동작). */
+  generateCardOffline(ctx){
     const rnd = Util.seeded(`${ctx.subtopicId}#${ctx.lessonNo}#${ctx.level}`);
     const t = ctx.unit, L = ctx.levelName;
     const depth = {beginner:'아주 기초부터',intermediate:'핵심 위주로',advanced:'깊이 있게',expert:'실전·심화로'}[ctx.level]||'';
@@ -474,7 +506,7 @@ const ContentEngine = {
     const example = this._example(t,ctx.mode);
     const quiz = this._quiz(t,rnd,L);
     const methodSections = (MODE_METHODS[ctx.mode]||MODE_METHODS.concept).map((m,i)=>({title:`${i+1}. ${m.title}`, body:m.body(t,rnd)}));
-    return { id:`${ctx.subtopicId}#${ctx.lessonNo}`, title:`${t} · Lesson ${ctx.lessonNo}`, ctx,
+    return { id:`${ctx.subtopicId}#${ctx.lessonNo}`, kind:'basic', title:`${t} · Lesson ${ctx.lessonNo}`, ctx,
       concept, kidExplain, example, quiz:quiz.q, options:quiz.options, answerIndex:quiz.answerIndex, answer:quiz.answer, wrongExplain:quiz.wrongExplain,
       methodSections, generatedAt:new Date().toISOString() };
   },
@@ -531,8 +563,9 @@ const DailyGenerator = {
     const ids=[];
     for(const e of state.enrolled){
       const prog=state.progress[e.key]||{lesson:1};
-      const card=ContentEngine.generateCard({field:e.fieldName,subject:e.subjectName,unit:e.unitName,subtopicId:e.key,lessonNo:prog.lesson||1,mode:e.mode,level:e.level,levelName:e.levelName});
-      ids.push({key:e.key,cardId:card.id,lessonNo:prog.lesson||1,label:`${e.fieldName} · ${e.subjectName} · ${e.unitName}`});
+      const lessonNo=prog.lesson||1;
+      // 내용은 '열 때' 생성(특히 AI 카드는 비용 때문에 미리 만들지 않음). 여기선 목록만.
+      ids.push({key:e.key,cardId:`${e.key}#${lessonNo}`,lessonNo,label:`${e.fieldName} · ${e.subjectName} · ${e.unitName}`});
     }
     return ids;
   },
@@ -568,6 +601,7 @@ const Store = {
     reviews:[],                           // SRS 항목들
     records:[],                           // {type:'study'|'quiz', date, key,label, minutes?, correct?}
     reflections:[],                       // {date, key,label, text, aiSummary, aiFeedback}
+    cardCache:{},                         // cardId -> 생성된 카드(재방문 시 재생성/재과금 방지, 기기 간 공유)
   }; },
   async load(){
     const saved = await DB.get('state');
@@ -779,40 +813,334 @@ Views.dashboard = function(){
 };
 
 /* ----- 학습 카드 열기 (모달) ----- */
-window.openLesson = function(key, cardId){
+window.openLesson = async function(key, cardId){
   const e=Store.state.enrolled.find(x=>x.key===key); if(!e)return;
   const lessonNo=parseInt(cardId.split('#')[1])||1;
-  const card=ContentEngine.generateCard({field:e.fieldName,subject:e.subjectName,unit:e.unitName,subtopicId:e.key,lessonNo,mode:e.mode,level:e.level,levelName:e.levelName});
+  const ctx={field:e.fieldName,subject:e.subjectName,unit:e.unitName,subtopicId:e.key,lessonNo,mode:e.mode,level:e.level,levelName:e.levelName,fieldId:e.fieldId};
+
+  Store.state.cardCache = Store.state.cardCache || {};
+  const cacheKey = `${cardId}#${e.level}`;
+  let card = Store.state.cardCache[cacheKey];
+
+  if(!card){
+    const useAI = ContentEngine.isAITarget(ctx) && cloudMode && SB && navigator.onLine;
+    if(useAI){
+      openModal(`
+        <div style="text-align:center; padding:40px 10px">
+          <div class="kicker">${Util.esc(e.fieldName)} · ${Util.esc(e.subjectName)}</div>
+          <h2 style="margin:12px 0 8px">AI가 오늘의 지문을 만드는 중…</h2>
+          <p class="muted" style="margin-bottom:20px">실제 영어 지문과 문제를 생성하고 있어요 (10초쯤 걸려요)</p>
+          <div class="spinner" style="margin:0 auto"></div>
+        </div>`);
+      try{
+        card = await ContentEngine.generateCardAI(ctx);
+      }catch(err){
+        console.warn('AI 생성 실패:', err);
+        card = ContentEngine.generateCardOffline(ctx);
+        toast('AI 생성에 실패해 기본 카드로 대체했어요');
+      }
+    } else {
+      card = ContentEngine.generateCardOffline(ctx);
+    }
+    Store.state.cardCache[cacheKey] = card;
+    // 캐시 크기 제한(최근 60장)
+    const ck = Object.keys(Store.state.cardCache);
+    if(ck.length>60) delete Store.state.cardCache[ck[0]];
+    await Store.save();
+  }
   Store._activeLesson={key,card,startTime:Date.now()};
-  renderLesson(card,false);
+  renderLesson(card);
 };
-function renderLesson(card, answered){
+
+/* 음성 읽어주기 (브라우저 내장, 무료) */
+window.speak = function(text){
+  try{ window.speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); u.lang='en-US'; u.rate=0.95; window.speechSynthesis.speak(u); }
+  catch(e){ toast('이 브라우저는 음성 읽기를 지원하지 않아요'); }
+};
+window.speakPassage = ()=> speak(Store._activeLesson.card.passage||'');
+window.speakPattern = (i)=> speak((Store._activeLesson.card.patterns[i]||{}).en||'');
+window.speakDict = (i)=> speak((Store._activeLesson.card.dictation[i]||{}).text||'');
+window.speakExamPassage = ()=> speak(Store._activeLesson.card.passage||'');
+window.revealWriting = ()=>{ const el=document.getElementById('writingSample'); if(el)el.style.display='block'; };
+window.checkDict = function(i){
+  const d=Store._activeLesson.card.dictation[i]; if(!d)return;
+  const inputs=document.querySelectorAll(`input[data-d="${i}"]`); let allOk=true;
+  inputs.forEach((inp,bi)=>{ const ans=String(d.answers[bi]||'').trim().toLowerCase(); const val=inp.value.trim().toLowerCase(); const ok=!!val&&val===ans; if(!ok)allOk=false; inp.style.borderColor=ok?'var(--ok)':'var(--danger)'; });
+  const out=document.querySelector(`p[data-dr="${i}"]`);
+  if(out) out.innerHTML = allOk ? `<span style="color:var(--ok)">정답이에요! 🎉</span>` : `<span style="color:var(--danger)">정답:</span> ${Util.esc(d.text)}`;
+};
+
+/* ----- 학습 카드 렌더링 ----- */
+function renderLesson(card){
   const e=Store.state.enrolled.find(x=>x.key===Store._activeLesson.key);
-  openModal(`
+  const header = `
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px">
       <p class="kicker">${Util.esc(e.fieldName)} · ${Util.esc(e.subjectName)} · ${Util.esc(e.unitName)}</p>
       <button class="icon-btn" onclick="closeModal()" style="width:36px;height:36px">✕</button>
     </div>
     <h2 style="margin-bottom:4px">${Util.esc(card.title)}</h2>
-    <span class="pill" style="margin-bottom:16px">난이도: ${e.levelName}</span>
+    <span class="pill" style="margin-bottom:16px">난이도: ${e.levelName}${card.kind&&card.kind!=='basic'?' · ✦ AI 생성':''}</span>`;
 
+  const renderers = { english:renderEnglishBody, design:renderDesignBody, coding:renderCodingBody, math:renderMathBody, industry:renderIndustryBody, concept:renderConceptBody, task:renderTaskBody, exam:renderExamBody, basic:renderBasicBody };
+  const body = (renderers[card.kind] || renderBasicBody)(card);
+
+  // 객관식 시험(exam)은 문제를 본문에 직접 넣고 자체 완료 버튼을 둔다. 나머지는 공통 퀴즈 블록.
+  const quizBlock = (card.kind!=='exam' && (card.options||[]).length) ? `
+    <div class="lesson-sec"><h4><span class="dot"></span>${card.kind==='basic'?'퀴즈':'확인 문제'}</h4>
+      <p style="color:var(--ink); margin-bottom:12px">${Util.esc(card.quiz)}</p>
+      <div id="quizOpts">
+        ${(card.options||[]).map((o,i)=>`<button class="quiz-opt" data-i="${i}" onclick="answerQuiz(${i})"><span class="lab">${String.fromCharCode(65+i)}</span><span>${Util.esc(o)}</span></button>`).join('')}
+      </div>
+      <div id="quizResult"></div>
+    </div>` : '';
+
+  openModal(header + body + quizBlock);
+}
+
+/* 비영어 과목: 개념·초등학생 설명·예시·학습방식 */
+function renderBasicBody(card){
+  return `
     <div class="lesson-sec"><h4><span class="dot"></span>개념 설명 (쉽게)</h4><p>${Util.esc(card.concept)}</p></div>
     <div class="lesson-sec"><div class="kid"><h4><span class="dot"></span>초등학생도 이해하는 설명</h4><p>${Util.esc(card.kidExplain)}</p></div></div>
     <div class="lesson-sec"><h4><span class="dot"></span>실제 예시</h4><pre>${Util.esc(card.example)}</pre></div>
-
     <div class="lesson-sec"><h4><span class="dot"></span>학습 방식</h4>
-      ${card.methodSections.map(m=>`<div style="margin-bottom:12px"><b style="font-size:.9rem">${Util.esc(m.title)}</b><pre style="margin-top:5px">${Util.esc(m.body)}</pre></div>`).join('')}
-    </div>
-
-    <div class="lesson-sec"><h4><span class="dot"></span>퀴즈</h4>
-      <p style="color:var(--ink); margin-bottom:12px">${Util.esc(card.quiz)}</p>
-      <div id="quizOpts">
-        ${card.options.map((o,i)=>`<button class="quiz-opt" data-i="${i}" onclick="answerQuiz(${i})"><span class="lab">${String.fromCharCode(65+i)}</span><span>${Util.esc(o)}</span></button>`).join('')}
-      </div>
-      <div id="quizResult"></div>
-    </div>
-  `);
+      ${(card.methodSections||[]).map(m=>`<div style="margin-bottom:12px"><b style="font-size:.9rem">${Util.esc(m.title)}</b><pre style="margin-top:5px">${Util.esc(m.body)}</pre></div>`).join('')}
+    </div>`;
 }
+
+/* 영어 계열: 지문 → 패턴 → 어휘 → 영작 → 딕테이션 */
+function renderEnglishBody(card){
+  const patterns = (card.patterns||[]).map((p,i)=>`
+    <div style="margin-bottom:10px; padding:11px 13px; background:var(--bg-2); border-radius:12px; border:1px solid var(--line-soft)">
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+        <b style="font-size:.96rem">${Util.esc(p.en||'')}</b>
+        <button class="btn ghost" style="padding:2px 9px; min-height:26px; font-size:.72rem" onclick="speakPattern(${i})">🔊</button>
+      </div>
+      <p class="muted" style="font-size:.85rem; margin:4px 0">${Util.esc(p.ko||'')}</p>
+      ${p.point?`<p style="font-size:.88rem; color:var(--accent)">💡 ${Util.esc(p.point)}</p>`:''}
+    </div>`).join('');
+
+  const vocab = (card.vocab||[]).map(v=>`<span class="pill" style="margin:0 6px 6px 0">${Util.esc(v.word||'')} · ${Util.esc(v.meaning||'')}</span>`).join('');
+
+  const writing = card.writing ? `
+    <div class="lesson-sec"><h4><span class="dot"></span>영작 연습</h4>
+      <p style="margin-bottom:8px">${Util.esc(card.writing.instruction||'')}</p>
+      <textarea class="input" id="writingInput" placeholder="여기에 영어로 직접 써보세요" style="min-height:64px"></textarea>
+      <button class="btn ghost" style="margin-top:8px; padding:8px 14px; min-height:36px" onclick="revealWriting()">예시 답안 보기</button>
+      <p id="writingSample" class="kid" style="display:none; margin-top:8px">✍️ 예시: ${Util.esc(card.writing.sampleAnswer||'')}</p>
+    </div>` : '';
+
+  const dictation = (card.dictation||[]).length ? `
+    <div class="lesson-sec"><h4><span class="dot"></span>딕테이션 (듣고 빈칸 채우기)</h4>
+      ${card.dictation.map((d,i)=>{
+        const parts=String(d.blanked||'').split('___');
+        const inner=parts.map((seg,si)=> Util.esc(seg) + (si<parts.length-1?`<input data-d="${i}" data-b="${si}" class="input" style="display:inline-block; width:110px; padding:5px 8px; margin:0 4px" placeholder="?">`:'')).join('');
+        return `<div style="margin-bottom:14px; padding:11px 13px; background:var(--bg-2); border-radius:12px">
+          <button class="btn" style="padding:6px 14px; min-height:34px; margin-bottom:9px" onclick="speakDict(${i})">🔊 듣기</button>
+          <div style="line-height:2.1">${inner}</div>
+          <button class="btn ghost" style="margin-top:9px; padding:6px 12px; min-height:32px" onclick="checkDict(${i})">정답 확인</button>
+          <p data-dr="${i}" style="margin-top:7px; font-size:.9rem"></p>
+        </div>`;
+      }).join('')}
+    </div>` : '';
+
+  return `
+    <div class="lesson-sec"><h4><span class="dot"></span>영어 지문
+      <button class="btn ghost" style="padding:4px 11px; min-height:30px; font-size:.78rem; margin-left:6px" onclick="speakPassage()">🔊 전체 듣기</button>
+    </h4>
+      <p style="font-size:1.03rem; line-height:1.85">${Util.esc(card.passage||'')}</p>
+      <button class="btn ghost" style="padding:6px 12px; min-height:32px; margin-top:10px" onclick="this.nextElementSibling.style.display='block'; this.style.display='none'">한국어 번역 보기</button>
+      <p class="muted" style="display:none; margin-top:8px; line-height:1.7">${Util.esc(card.passageKo||'')}</p>
+    </div>
+    ${patterns?`<div class="lesson-sec"><h4><span class="dot"></span>핵심 패턴 익히기</h4>${patterns}</div>`:''}
+    ${vocab?`<div class="lesson-sec"><h4><span class="dot"></span>어휘</h4>${vocab}</div>`:''}
+    ${writing}
+    ${dictation}`;
+}
+
+/* 안전: AI가 만든 SVG에서 스크립트/이벤트 속성 제거 후 삽입 */
+function safeSvg(svg){
+  return String(svg||'')
+    .replace(/<script[\s\S]*?<\/script>/gi,'')
+    .replace(/\son\w+\s*=\s*"[^"]*"/gi,'')
+    .replace(/\son\w+\s*=\s*'[^']*'/gi,'')
+    .replace(/javascript:/gi,'');
+}
+
+/* 디자인: AI가 SVG로 좋은/나쁜 예시를 그려서 보여주고 관점별 분석 */
+function renderDesignBody(card){
+  const ex = (card.examples||[]).map(x=>{
+    const good = (x.label||'').toLowerCase()==='good';
+    return `<div style="flex:1; min-width:200px; border:1px solid var(--line); border-radius:14px; overflow:hidden; background:var(--surface)">
+      <div style="padding:7px 12px; font-size:.78rem; font-weight:700; color:var(--bg); background:${good?'var(--ok)':'var(--danger)'}">${good?'👍 좋은 예':'👎 아쉬운 예'}</div>
+      <div style="padding:12px; display:flex; justify-content:center; background:var(--bg-2)">
+        <div style="width:100%; max-width:280px">${safeSvg(x.svg)}</div>
+      </div>
+      <p style="padding:10px 12px; font-size:.86rem; color:var(--ink-soft)">${Util.esc(x.caption||'')}</p>
+    </div>`;
+  }).join('');
+  const a = card.analysis||{};
+  const row = (label,txt)=> txt?`<div style="margin-bottom:10px"><b style="font-size:.9rem; color:var(--accent)">${label}</b><p style="font-size:.92rem; color:var(--ink-soft); margin-top:3px">${Util.esc(txt)}</p></div>`:'';
+  return `
+    ${card.concept?`<div class="lesson-sec"><h4><span class="dot"></span>개념 (쉽게)</h4><p>${Util.esc(card.concept)}</p></div>`:''}
+    <div class="lesson-sec"><h4><span class="dot"></span>예시 비교</h4>
+      <div style="display:flex; gap:12px; flex-wrap:wrap">${ex}</div>
+    </div>
+    <div class="lesson-sec"><h4><span class="dot"></span>관점별 분석</h4>
+      ${row('🧩 구도', a.composition)}${row('🔁 패턴', a.pattern)}${row('👀 시선 흐름', a.gaze)}${row('🎨 색상', a.color)}${row('🏛 거장의 시각', a.master)}
+    </div>
+    ${card.todayTask?renderTaskCard(card.todayTask, '오늘의 디자인 작업'):''}`;
+}
+
+/* 작업지시서 카드 한 덩어리 (task kind 본문 + design todayTask 공용) */
+function renderTaskCard(t, heading){
+  const steps = (t.steps||[]).map(s=>`
+    <div style="display:flex; gap:11px; margin-bottom:12px">
+      <div style="flex:none; width:26px; height:26px; border-radius:50%; display:grid; place-items:center; background:var(--accent); color:var(--bg); font-weight:700; font-size:.82rem">${Util.esc(String(s.n||'•'))}</div>
+      <div style="flex:1; min-width:0">
+        ${s.title?`<b style="font-size:.95rem">${Util.esc(s.title)}</b>`:''}
+        <p style="font-size:.92rem; color:var(--ink-soft); margin-top:3px">${Util.esc(s.do||'')}</p>
+        ${s.code?`<pre style="margin-top:6px; font-size:.84rem">${Util.esc(s.code)}</pre>`:''}
+        ${s.tip?`<p style="font-size:.82rem; color:var(--gold); margin-top:4px">💡 ${Util.esc(s.tip)}</p>`:''}
+      </div>
+    </div>`).join('');
+  const checklist = (t.checklist||[]).map(c=>`<label style="display:flex; gap:8px; align-items:flex-start; padding:5px 0; font-size:.9rem; color:var(--ink-soft)"><input type="checkbox" style="margin-top:3px"> <span>${Util.esc(c)}</span></label>`).join('');
+  return `
+    <div class="lesson-sec"><h4><span class="dot"></span>${Util.esc(heading||'오늘의 작업지시서')}</h4>
+      ${t.tool?`<span class="pill" style="margin-bottom:10px">🛠 ${Util.esc(t.tool)}</span>`:''}
+      ${t.goal?`<div class="kid" style="margin-bottom:12px"><b>🎯 목표</b> · ${Util.esc(t.goal)}</div>`:''}
+      ${t.intro?`<p class="muted" style="font-size:.9rem; margin-bottom:14px">${Util.esc(t.intro)}</p>`:''}
+      <div style="margin-bottom:12px">${steps}</div>
+      ${t.deliverable?`<div style="padding:11px 13px; background:var(--bg-2); border-radius:12px; border:1px solid var(--line-soft); margin-bottom:12px"><b style="font-size:.88rem; color:var(--accent)">✅ 완성 기준</b><p style="font-size:.9rem; margin-top:4px">${Util.esc(t.deliverable)}</p></div>`:''}
+      ${checklist?`<div><b style="font-size:.88rem">스스로 점검</b>${checklist}</div>`:''}
+    </div>`;
+}
+
+/* 작업지시서(task) 본문: 통계·데이터·3D·마케팅 등 실습 */
+function renderTaskBody(card){
+  return `
+    ${renderTaskCard(card, '실습 작업지시서')}
+    ${(card.options||[]).length?'':`<div class="lesson-sec" style="border-top:none"><button class="btn block gold" onclick="completeLesson()">작업 완료 & 회고 쓰기 ✎</button></div>`}`;
+}
+
+/* 객관식 시험(exam): 문제 여러 개를 직접 풀고 채점·해설 */
+function renderExamBody(card){
+  const qs = (card.questions||[]).map((q,qi)=>`
+    <div data-eq="${qi}" style="margin-bottom:18px; padding-bottom:14px; border-bottom:1px solid var(--line-soft)">
+      <p style="font-weight:600; margin-bottom:10px">Q${qi+1}. ${Util.esc(q.q||'')}</p>
+      <div>
+        ${(q.options||[]).map((o,i)=>`<button class="quiz-opt" data-i="${i}" onclick="answerExam(${qi},${i})"><span class="lab">${String.fromCharCode(65+i)}</span><span>${Util.esc(o)}</span></button>`).join('')}
+      </div>
+      <div data-er="${qi}" style="margin-top:8px"></div>
+    </div>`).join('');
+  return `
+    ${card.instruction?`<div class="lesson-sec"><p class="muted" style="font-size:.9rem">📋 ${Util.esc(card.instruction)}</p></div>`:''}
+    ${card.passage?`<div class="lesson-sec"><h4><span class="dot"></span>지문
+      <button class="btn ghost" style="padding:4px 11px; min-height:30px; font-size:.78rem; margin-left:6px" onclick="speakExamPassage()">🔊</button>
+    </h4>
+      <p style="line-height:1.8">${Util.esc(card.passage)}</p>
+      ${card.passageKo?`<button class="btn ghost" style="padding:6px 12px; min-height:32px; margin-top:8px" onclick="this.nextElementSibling.style.display='block'; this.style.display='none'">번역 보기</button><p class="muted" style="display:none; margin-top:8px">${Util.esc(card.passageKo)}</p>`:''}
+    </div>`:''}
+    <div class="lesson-sec"><h4><span class="dot"></span>문제</h4>${qs}</div>
+    <div class="lesson-sec" style="border-top:none">
+      <button class="btn block gold" onclick="completeLesson()">학습 완료 & 회고 쓰기 ✎</button>
+    </div>`;
+}
+window.answerExam = function(qi, oi){
+  const card = Store._activeLesson.card; const q = (card.questions||[])[qi]; if(!q) return;
+  document.querySelectorAll(`[data-eq="${qi}"] .quiz-opt`).forEach(b=>{ b.onclick=null; const bi=+b.dataset.i; if(bi===q.answerIndex)b.classList.add('correct'); else if(bi===oi)b.classList.add('wrong'); });
+  const correct = oi===q.answerIndex;
+  Store.state.records.push({type:'quiz', date:Util.today(), key:Store._activeLesson.key, label:`${card.ctx.field} · ${card.ctx.subject}`, correct});
+  const out = document.querySelector(`[data-er="${qi}"]`);
+  if(out) out.innerHTML = `<div class="card" style="background:var(--bg-2); box-shadow:none"><b style="color:${correct?'var(--ok)':'var(--danger)'}">${correct?'정답이에요! 🎉':'아쉬워요'}</b><p style="margin-top:6px; font-size:.9rem">${Util.esc(q.explain||'')}</p></div>`;
+  Store.save();
+};
+
+/* 코딩: 쉬운→어려운 코드 + 한 줄씩 분석 + 유형 문제 + 내 답 평가 */
+function renderCodingBody(card){
+  const blocks = (card.codeBlocks||[]).map((b,bi)=>`
+    <div style="margin-bottom:16px">
+      <span class="pill" style="margin-bottom:8px">${Util.esc(b.level||('단계 '+(bi+1)))}</span>
+      <pre style="margin-top:8px">${Util.esc(b.code||'')}</pre>
+      ${(b.lines||[]).length?`<div style="margin-top:8px">${b.lines.map(l=>`<div style="display:flex; gap:10px; padding:6px 0; border-bottom:1px solid var(--line-soft)"><code style="flex:none; min-width:42%; font-size:.84rem; color:var(--gold); white-space:pre-wrap; word-break:break-word">${Util.esc(l.code||l.line||'')}</code><span style="font-size:.86rem; color:var(--ink-soft)">${Util.esc(l.explain||'')}</span></div>`).join('')}</div>`:''}
+    </div>`).join('');
+  const pr = card.practice||{};
+  return `
+    ${card.concept?`<div class="lesson-sec"><h4><span class="dot"></span>개념 (쉽게)</h4><p>${Util.esc(card.concept)}</p></div>`:''}
+    <div class="lesson-sec"><h4><span class="dot"></span>코드 한 땀 한 땀</h4>${blocks}</div>
+    ${pr.problem?`<div class="lesson-sec"><h4><span class="dot"></span>유형 문제 — 직접 풀어보기</h4>
+      <p style="margin-bottom:8px">${Util.esc(pr.problem)}</p>
+      ${pr.hint?`<p class="muted" style="font-size:.85rem; margin-bottom:8px">💡 힌트: ${Util.esc(pr.hint)}</p>`:''}
+      <textarea class="input" id="codeAnswer" placeholder="여기에 코드를 작성하세요" style="font-family:monospace; min-height:120px"></textarea>
+      <button class="btn" style="margin-top:8px" onclick="evaluateCode()">내 답 평가받기 ✦</button>
+      <div id="codeEval" style="margin-top:10px"></div>
+      ${pr.sampleSolution?`<button class="btn ghost block" style="margin-top:10px" onclick="document.getElementById('codeSample').style.display='block';this.style.display='none'">모범답안 보기</button>
+      <pre id="codeSample" style="display:none; margin-top:8px">${Util.esc(pr.sampleSolution)}</pre>`:''}
+    </div>`:''}`;
+}
+
+/* 수학: 개념 + 풀이 예제 + 답 / 통계·최적화는 실전 작업지시서 */
+function renderMathBody(card){
+  const w = card.worked||{};
+  const pr = card.practice||{};
+  return `
+    ${card.concept?`<div class="lesson-sec"><h4><span class="dot"></span>개념 (쉽게)</h4><p>${Util.esc(card.concept)}</p></div>`:''}
+    ${w.problem?`<div class="lesson-sec"><h4><span class="dot"></span>풀이 예제</h4>
+      <p style="margin-bottom:8px"><b>문제.</b> ${Util.esc(w.problem)}</p>
+      ${(w.steps||[]).length?`<ol style="margin:0 0 8px 18px; color:var(--ink-soft); font-size:.92rem; line-height:1.8">${w.steps.map(s=>`<li>${Util.esc(s)}</li>`).join('')}</ol>`:''}
+      ${w.answer?`<p class="kid">✅ 답: ${Util.esc(w.answer)}</p>`:''}
+    </div>`:''}
+    ${pr.tasksheet?`<div class="lesson-sec"><h4><span class="dot"></span>실전 작업지시서</h4><pre>${Util.esc(pr.tasksheet)}</pre></div>`:''}
+    ${pr.problem?`<div class="lesson-sec"><h4><span class="dot"></span>연습 문제</h4>
+      <p style="margin-bottom:8px">${Util.esc(pr.problem)}</p>
+      ${pr.answer?`<button class="btn ghost" style="padding:8px 14px; min-height:36px" onclick="document.getElementById('mathAns').style.display='block';this.style.display='none'">정답 보기</button>
+      <p id="mathAns" class="kid" style="display:none; margin-top:8px">✅ ${Util.esc(pr.answer)}</p>`:''}
+    </div>`:''}`;
+}
+
+/* AI & 미래산업: 트렌드 + 수혜 기업(매출·이익·현금흐름) */
+function renderIndustryBody(card){
+  const bens = (card.beneficiaries||[]).map(b=>`
+    <div class="card" style="margin-bottom:10px; box-shadow:none">
+      <b style="font-family:var(--font-display); font-size:1.05rem">${Util.esc(b.company||'')}</b>
+      ${b.revenue?`<p style="font-size:.88rem; margin-top:6px"><b style="color:var(--accent)">매출</b> · ${Util.esc(b.revenue)}</p>`:''}
+      ${b.profit?`<p style="font-size:.88rem; margin-top:4px"><b style="color:var(--accent)">이익</b> · ${Util.esc(b.profit)}</p>`:''}
+      ${b.cashflow?`<p style="font-size:.88rem; margin-top:4px"><b style="color:var(--accent)">현금흐름</b> · ${Util.esc(b.cashflow)}</p>`:''}
+    </div>`).join('');
+  return `
+    ${card.trend?`<div class="lesson-sec"><h4><span class="dot"></span>뜨는 분야</h4><p>${Util.esc(card.trend)}</p></div>`:''}
+    <div class="lesson-sec"><h4><span class="dot"></span>수혜가 예상되는 기업/유형</h4>${bens}</div>
+    <div class="lesson-sec"><p class="muted" style="font-size:.8rem">⚠️ ${Util.esc(card.caveat||'이 내용은 학습용 분석이며 투자 조언이 아닙니다. 투자 결정 전 반드시 직접 확인하세요.')}</p></div>`;
+}
+
+/* 일반 개념(비즈니스 등): 설명 + 사례 + 적용 */
+function renderConceptBody(card){
+  return `
+    ${card.concept?`<div class="lesson-sec"><h4><span class="dot"></span>핵심 (쉽게)</h4><p>${Util.esc(card.concept)}</p></div>`:''}
+    ${card.example?`<div class="lesson-sec"><h4><span class="dot"></span>실제 사례</h4><p>${Util.esc(card.example)}</p></div>`:''}
+    ${card.apply?`<div class="lesson-sec"><div class="kid"><h4><span class="dot"></span>내 상황에 적용하기</h4><p>${Util.esc(card.apply)}</p></div></div>`:''}`;
+}
+
+/* 코딩 답안 AI 평가 */
+window.evaluateCode = async function(){
+  const ta = document.getElementById('codeAnswer'); if(!ta) return;
+  const userCode = ta.value.trim();
+  if(!userCode){ toast('코드를 입력해주세요'); return; }
+  if(!(cloudMode && SB)){ toast('평가는 로그인(클라우드) 상태에서만 가능해요'); return; }
+  const out = document.getElementById('codeEval');
+  out.innerHTML = `<div style="display:flex; align-items:center; gap:10px"><div class="spinner" style="width:22px;height:22px;border-width:2px"></div><span class="muted">AI가 채점 중…</span></div>`;
+  try{
+    const c = Store._activeLesson.card;
+    const { data, error } = await SB.functions.invoke('generate-card', { body:{ action:'evaluate', problem:(c.practice&&c.practice.problem)||'', userCode, subject:c.ctx.subject, levelName:c.ctx.levelName } });
+    if(error || !data || data.error) throw new Error((data&&data.error)||'eval-fail');
+    out.innerHTML = `<div class="card" style="background:var(--bg-2); box-shadow:none">
+      ${typeof data.score!=='undefined'?`<span class="pill" style="border-color:var(--gold); margin-bottom:8px">점수: ${Util.esc(String(data.score))}/100</span>`:''}
+      <p style="font-size:.92rem; margin-top:6px; white-space:pre-wrap">${Util.esc(data.feedback||'')}</p>
+    </div>`;
+    Store.save();
+  }catch(e){ out.innerHTML = `<p class="muted" style="font-size:.85rem">평가에 실패했어요. 잠시 후 다시 시도해주세요.</p>`; }
+};
+
 window.answerQuiz = function(i){
   const {card}=Store._activeLesson;
   const correct = i===card.answerIndex;
@@ -834,6 +1162,8 @@ window.answerQuiz = function(i){
 
 /* ----- 학습 완료 → 회고 작성 ----- */
 window.completeLesson = function(){
+  if(Store._activeLesson && Store._activeLesson._done) return; // 한 세션에서 한 번만 진행
+  if(Store._activeLesson) Store._activeLesson._done = true;
   const {key,card,startTime}=Store._activeLesson;
   const minutes=Math.max(1,Math.round((Date.now()-startTime)/60000));
   const e=Store.state.enrolled.find(x=>x.key===key);
