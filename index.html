@@ -602,6 +602,7 @@ const Store = {
     records:[],                           // {type:'study'|'quiz', date, key,label, minutes?, correct?}
     reflections:[],                       // {date, key,label, text, aiSummary, aiFeedback}
     cardCache:{},                         // cardId -> 생성된 카드(재방문 시 재생성/재과금 방지, 기기 간 공유)
+    conversations:[],                     // 자막 학습 대화 저장 {id,subject,subjectLabel,date,title,summary,messages,updatedAt}
   }; },
   async load(){
     const saved = await DB.get('state');
@@ -636,6 +637,7 @@ $('#themeBtn').addEventListener('click', async ()=>{ const t=Store.state.theme==
 const NAV = [
   {id:'dashboard', icon:'◴', label:'대시보드'},
   {id:'study',     icon:'✎', label:'학습'},
+  {id:'transcript',icon:'▶', label:'자막 학습'},
   {id:'review',    icon:'↺', label:'복습'},
   {id:'schedule',  icon:'◷', label:'일정'},
   {id:'records',   icon:'❏', label:'기록'},
@@ -852,10 +854,40 @@ window.openLesson = async function(key, cardId){
   renderLesson(card);
 };
 
-/* 음성 읽어주기 (브라우저 내장, 무료) */
-window.speak = function(text){
-  try{ window.speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); u.lang='en-US'; u.rate=0.95; window.speechSynthesis.speak(u); }
-  catch(e){ toast('이 브라우저는 음성 읽기를 지원하지 않아요'); }
+/* 음성 읽어주기. ElevenLabs(깨끗한 음성) 우선 시도 → 실패/미설정 시 브라우저 내장 음성. */
+function pickUsVoice(){
+  try{
+    const vs = window.speechSynthesis.getVoices()||[];
+    return vs.find(v=>/en[-_]US/i.test(v.lang) && /natural|google|samantha|aria|jenny/i.test(v.name))
+        || vs.find(v=>/en[-_]US/i.test(v.lang))
+        || vs.find(v=>/^en/i.test(v.lang)) || null;
+  }catch(e){ return null; }
+}
+function browserSpeak(text){
+  try{
+    window.speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text); u.lang='en-US'; u.rate=0.95;
+    const v=pickUsVoice(); if(v) u.voice=v;
+    window.speechSynthesis.speak(u);
+  }catch(e){ toast('이 브라우저는 음성 읽기를 지원하지 않아요'); }
+}
+let _ttsAudio = null;
+window.speak = async function(text){
+  if(!text) return;
+  // 클라우드면 ElevenLabs 시도
+  if(cloudMode && SB){
+    try{
+      const { data, error } = await SB.functions.invoke('generate-card', { body:{ action:'tts', text } });
+      if(!error && data && data.audio){
+        try{ window.speechSynthesis.cancel(); }catch(e){}
+        if(_ttsAudio){ try{ _ttsAudio.pause(); }catch(e){} }
+        _ttsAudio = new Audio('data:'+(data.mime||'audio/mpeg')+';base64,'+data.audio);
+        _ttsAudio.play().catch(()=>browserSpeak(text));
+        return;
+      }
+    }catch(e){ /* 아래 브라우저 음성으로 폴백 */ }
+  }
+  browserSpeak(text);
 };
 window.speakPassage = ()=> speak(Store._activeLesson.card.passage||'');
 window.speakPattern = (i)=> speak((Store._activeLesson.card.patterns[i]||{}).en||'');
@@ -923,8 +955,9 @@ function renderEnglishBody(card){
   const vocab = (card.vocab||[]).map(v=>`<span class="pill" style="margin:0 6px 6px 0">${Util.esc(v.word||'')} · ${Util.esc(v.meaning||'')}</span>`).join('');
 
   const writing = card.writing ? `
-    <div class="lesson-sec"><h4><span class="dot"></span>영작 연습</h4>
-      <p style="margin-bottom:8px">${Util.esc(card.writing.instruction||'')}</p>
+    <div class="lesson-sec"><h4><span class="dot"></span>영작 연습 (한국어 → 영어)</h4>
+      <p style="margin-bottom:6px">다음 문장을 영어로 옮겨 보세요.</p>
+      <div class="kid" style="margin-bottom:10px; font-size:1rem">📝 ${Util.esc(card.writing.koSentence || card.writing.instruction || '')}</div>
       <textarea class="input" id="writingInput" placeholder="여기에 영어로 직접 써보세요" style="min-height:64px"></textarea>
       <button class="btn ghost" style="margin-top:8px; padding:8px 14px; min-height:36px" onclick="revealWriting()">예시 답안 보기</button>
       <p id="writingSample" class="kid" style="display:none; margin-top:8px">✍️ 예시: ${Util.esc(card.writing.sampleAnswer||'')}</p>
@@ -934,7 +967,7 @@ function renderEnglishBody(card){
     <div class="lesson-sec"><h4><span class="dot"></span>딕테이션 (듣고 빈칸 채우기)</h4>
       ${card.dictation.map((d,i)=>{
         const parts=String(d.blanked||'').split('___');
-        const inner=parts.map((seg,si)=> Util.esc(seg) + (si<parts.length-1?`<input data-d="${i}" data-b="${si}" class="input" style="display:inline-block; width:110px; padding:5px 8px; margin:0 4px" placeholder="?">`:'')).join('');
+        const inner=parts.map((seg,si)=> Util.esc(seg) + (si<parts.length-1?`<input data-d="${i}" data-b="${si}" class="input" style="display:inline-block; width:92px; padding:4px 6px; margin:2px 3px" placeholder="?">`:'')).join('');
         return `<div style="margin-bottom:14px; padding:11px 13px; background:var(--bg-2); border-radius:12px">
           <button class="btn" style="padding:6px 14px; min-height:34px; margin-bottom:9px" onclick="speakDict(${i})">🔊 듣기</button>
           <div style="line-height:2.1">${inner}</div>
@@ -1241,6 +1274,173 @@ Views.study = function(){
   `;
 };
 window.startCurrentLesson = function(key){ const p=Store.state.progress[key]||{lesson:1}; openLesson(key, `${key}#${p.lesson||1}`); };
+
+/* ===================================================================
+ *  자막 학습 탭 (유튜브 자막 → ChatGPT식 대화 + 저장 + 음성)
+ * =================================================================== */
+const TL_SUBJECTS = [
+  {id:'toefl',label:'토플'},{id:'english',label:'영어'},{id:'design',label:'디자인'},
+  {id:'stat',label:'통계'},{id:'coding',label:'코딩'},{id:'custom',label:'기타'},
+];
+let TL = { subject:'toefl', customRole:'', link:'', transcript:'', draft:'', messages:[], activeId:null, sending:false, extracting:false };
+function tlLabel(){ return TL.subject==='custom' ? (TL.customRole||'기타') : (TL_SUBJECTS.find(s=>s.id===TL.subject)||{}).label; }
+
+Views.transcript = function(){
+  const cloudReady = cloudMode && SB;
+  const convos = (Store.state.conversations||[]).slice().sort((a,b)=>(b.updatedAt||'').localeCompare(a.updatedAt||''));
+  view.innerHTML = `
+    <p class="kicker">자막 학습</p>
+    <h1 style="font-size:clamp(1.8rem,6vw,2.4rem); margin:4px 0 6px">유튜브로 배우기</h1>
+    <p class="muted" style="margin-bottom:18px">유튜브 링크를 넣으면 자막을 가져와요. 그 내용으로 AI와 자유롭게 대화하고, 영어는 🔊로 들어보세요. 대화는 저장됩니다.</p>
+
+    <div class="card" style="margin-bottom:16px">
+      <b style="font-size:.9rem">주제</b>
+      <div class="chips" style="margin:10px 0 0">
+        ${TL_SUBJECTS.map(s=>`<button class="chip ${TL.subject===s.id?'on':''}" style="${TL.subject===s.id?'border-color:var(--gold)':''}" onclick="tlPickSubject('${s.id}')">${s.label}</button>`).join('')}
+      </div>
+      ${TL.subject==='custom'?`<input class="input" style="margin-top:10px" placeholder="예: 면접 코칭, 역사 선생님…" value="${Util.esc(TL.customRole)}" oninput="TL.customRole=this.value">`:''}
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <b style="font-size:.9rem">유튜브 링크</b>
+      <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap">
+        <input class="input" style="flex:1; min-width:180px" placeholder="https://youtu.be/..." value="${Util.esc(TL.link)}" oninput="TL.link=this.value">
+        <button class="btn" style="padding:10px 16px; min-height:42px" onclick="tlExtract()" ${TL.extracting?'disabled':''}>${TL.extracting?'가져오는 중…':'자막 가져오기'}</button>
+      </div>
+      <b style="font-size:.9rem; display:block; margin-top:14px">자막 <span class="muted" style="font-weight:400">(자동으로 채워지거나, 직접 붙여넣어도 돼요)</span></b>
+      <textarea class="input" style="margin-top:8px; min-height:90px" placeholder="여기에 자막이 들어갑니다" oninput="TL.transcript=this.value">${Util.esc(TL.transcript)}</textarea>
+    </div>
+
+    ${!cloudReady?`<div class="card" style="margin-bottom:16px; border-color:var(--gold)"><p class="muted" style="font-size:.88rem">💡 대화 기능은 로그인(클라우드) 상태에서 작동해요.</p></div>`:''}
+
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
+        <b style="font-size:.9rem">AI와 대화 · ${Util.esc(tlLabel())}</b>
+        <div style="display:flex; gap:6px">
+          <button class="btn ghost" style="padding:6px 12px; min-height:32px; font-size:.8rem" onclick="tlNewChat()">새 대화</button>
+          <button class="btn ghost" style="padding:6px 12px; min-height:32px; font-size:.8rem" onclick="tlSaveConversation()" ${TL.messages.length?'':'disabled'}>저장</button>
+        </div>
+      </div>
+      <div id="tlChat" style="display:flex; flex-direction:column; gap:10px; max-height:420px; overflow-y:auto; padding:4px">
+        ${TL.messages.length? TL.messages.map((m,i)=>tlBubble(m,i)).join('') : `<p class="muted" style="text-align:center; padding:24px 0; font-size:.88rem">자막을 넣고 아래에 질문해 보세요.<br>예: "이 영상 핵심 표현 5개 알려줘", "받아쓰기 연습시켜줘"</p>`}
+        ${TL.sending?`<div style="align-self:flex-start; display:flex; align-items:center; gap:8px; padding:10px 14px"><div class="spinner" style="width:18px;height:18px;border-width:2px"></div><span class="muted" style="font-size:.85rem">AI가 생각 중…</span></div>`:''}
+      </div>
+      <div style="display:flex; gap:8px; margin-top:12px">
+        <textarea id="tlDraft" class="input" style="flex:1; min-height:46px; max-height:120px" placeholder="메시지를 입력…" oninput="TL.draft=this.value" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();tlSend();}">${Util.esc(TL.draft)}</textarea>
+        <button class="btn" style="padding:10px 18px; min-height:46px" onclick="tlSend()" ${(TL.sending||!cloudReady)?'disabled':''}>전송</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <b style="font-size:.9rem">저장된 대화</b>
+      <div style="margin-top:12px; display:flex; flex-direction:column; gap:10px">
+        ${convos.length? convos.map(c=>`
+          <div style="padding:12px 14px; background:var(--bg-2); border-radius:12px; border:1px solid var(--line-soft)">
+            <div style="display:flex; justify-content:space-between; gap:8px; align-items:flex-start">
+              <div style="min-width:0">
+                <span class="pill" style="margin-bottom:6px">${Util.esc(c.subjectLabel||'')} · ${Util.esc(c.date||'')}</span>
+                <b style="display:block; font-size:.98rem">${Util.esc(c.title||'학습 대화')}</b>
+                ${c.summary?`<p class="muted" style="font-size:.85rem; margin-top:4px">${Util.esc(c.summary)}</p>`:''}
+              </div>
+            </div>
+            <div style="display:flex; gap:6px; margin-top:10px">
+              <button class="btn ghost" style="padding:6px 12px; min-height:32px; font-size:.8rem" onclick="tlOpenSaved('${c.id}')">이어보기</button>
+              <button class="btn ghost" style="padding:6px 12px; min-height:32px; font-size:.8rem; color:var(--danger)" onclick="tlDeleteSaved('${c.id}')">삭제</button>
+            </div>
+          </div>`).join('') : `<p class="muted" style="font-size:.85rem">아직 저장된 대화가 없어요.</p>`}
+      </div>
+    </div>
+  `;
+  const chat=document.getElementById('tlChat'); if(chat) chat.scrollTop=chat.scrollHeight;
+};
+
+function tlBubble(m,i){
+  const mine = m.role==='user';
+  return `<div style="align-self:${mine?'flex-end':'flex-start'}; max-width:86%">
+    <div style="padding:10px 14px; border-radius:14px; background:${mine?'var(--accent)':'var(--bg-2)'}; color:${mine?'var(--bg)':'var(--ink)'}; border:1px solid var(--line-soft); white-space:pre-wrap; line-height:1.6; font-size:.92rem">${Util.esc(m.content)}</div>
+    ${!mine?`<button class="btn ghost" style="padding:3px 10px; min-height:26px; font-size:.72rem; margin-top:4px" onclick="tlSpeak(${i})">🔊 영어 듣기</button>`:''}
+  </div>`;
+}
+
+window.tlPickSubject = function(id){ TL.subject=id; Views.transcript(); };
+window.tlSpeak = function(i){ const m=TL.messages[i]; if(m) speak(m.content); };
+window.tlNewChat = function(){ TL.messages=[]; TL.activeId=null; TL.draft=''; TL.transcript=''; TL.link=''; Views.transcript(); };
+
+window.tlExtract = async function(){
+  if(!TL.link.trim()){ toast('유튜브 링크를 넣어주세요'); return; }
+  if(!(cloudMode && SB)){ toast('자막 가져오기는 로그인 상태에서 작동해요'); return; }
+  TL.extracting=true; Views.transcript();
+  try{
+    const { data, error } = await SB.functions.invoke('generate-card', { body:{ action:'transcript', url:TL.link } });
+    if(error || !data || data.error) throw new Error((data&&data.error)||'fail');
+    TL.transcript = data.transcript || '';
+    toast(data.title? `자막을 가져왔어요: ${data.title}` : '자막을 가져왔어요');
+  }catch(e){
+    toast('자동 추출 실패 — 자막을 직접 붙여넣어 주세요');
+  }finally{
+    TL.extracting=false; Views.transcript();
+  }
+};
+
+window.tlSend = async function(){
+  const text=(TL.draft||'').trim(); if(!text) return;
+  if(!(cloudMode && SB)){ toast('로그인(클라우드) 상태에서만 대화할 수 있어요'); return; }
+  TL.messages.push({role:'user', content:text}); TL.draft=''; TL.sending=true; Views.transcript();
+  try{
+    const { data, error } = await SB.functions.invoke('generate-card', { body:{
+      action:'chat',
+      subject: TL.subject==='custom'? undefined : TL.subject,
+      customRole: TL.subject==='custom'? TL.customRole : '',
+      transcript: TL.transcript,
+      messages: TL.messages,
+    }});
+    if(error || !data || data.error) throw new Error((data&&data.error)||'fail');
+    TL.messages.push({role:'assistant', content:data.reply||'(응답이 비어 있어요)'});
+  }catch(e){
+    TL.messages.push({role:'assistant', content:'⚠️ 응답에 실패했어요. 잠시 후 다시 시도해주세요.'});
+  }finally{
+    TL.sending=false; Views.transcript();
+  }
+};
+
+window.tlSaveConversation = async function(){
+  if(!TL.messages.length){ toast('저장할 대화가 없어요'); return; }
+  let title='학습 대화', summary='';
+  if(cloudMode && SB){
+    try{
+      const { data } = await SB.functions.invoke('generate-card', { body:{ action:'titlesum', messages:TL.messages } });
+      if(data){ title=data.title||title; summary=data.summary||''; }
+    }catch(e){ /* 제목 생성 실패해도 저장은 진행 */ }
+  }
+  const now=new Date().toISOString();
+  Store.state.conversations = Store.state.conversations || [];
+  if(TL.activeId){
+    const ex=Store.state.conversations.find(c=>c.id===TL.activeId);
+    if(ex){ Object.assign(ex,{title,summary,messages:TL.messages.slice(),transcript:TL.transcript,updatedAt:now}); }
+  } else {
+    const id='c'+Date.now();
+    TL.activeId=id;
+    Store.state.conversations.unshift({ id, subject:TL.subject, subjectLabel:tlLabel(), date:Util.today(), title, summary, transcript:TL.transcript, messages:TL.messages.slice(), updatedAt:now });
+  }
+  await Store.save();
+  toast('대화를 저장했어요');
+  Views.transcript();
+};
+
+window.tlOpenSaved = function(id){
+  const c=(Store.state.conversations||[]).find(x=>x.id===id); if(!c) return;
+  TL.subject = c.subject||'toefl'; TL.customRole = (c.subject==='custom'? c.subjectLabel : '')||'';
+  TL.transcript = c.transcript||''; TL.messages = (c.messages||[]).slice(); TL.activeId=c.id; TL.draft='';
+  Views.transcript();
+  toast('대화를 불러왔어요');
+};
+
+window.tlDeleteSaved = async function(id){
+  Store.state.conversations = (Store.state.conversations||[]).filter(c=>c.id!==id);
+  if(TL.activeId===id) TL.activeId=null;
+  await Store.save(); Views.transcript();
+};
+
 
 /* ----- 복습 탭 ----- */
 Views.review = function(){
